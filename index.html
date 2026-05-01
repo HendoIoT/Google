@@ -1290,7 +1290,7 @@ function LossPrevention({
   const missing = devices.filter(d => d.status === 'missing');
   const offline = devices.filter(d => d.status === 'offline');
   const atRisk = misplaced.length + stale.length + missing.length + offline.length;
-  const valueAtRisk = atRisk * 650;
+  const valueAtRisk = atRisk * 200;
   const recoveryRate = 87;
   const avgTimeToRecovery = '4.2h';
   const recoverable = [...misplaced, ...stale].sort((a, b) => (a.minutesAgo || 0) - (b.minutesAgo || 0));
