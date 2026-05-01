@@ -33,6 +33,7 @@ const {
   ResponsiveContainer,
   Legend
 } = Recharts;
+const BACKSTAGE_LOGO = 'data:image/jpeg;base64,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';
 
 // Inline SVG icon library - no CDN dependency
 const ICON_PATHS = {
@@ -295,14 +296,11 @@ function Header() {
     className: "text-sm text-blue-100"
   }, "Workplace Asset Tracking")), /*#__PURE__*/React.createElement("div", {
     className: "flex items-center gap-4"
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "px-4 py-1.5 border border-white/30 rounded-md flex items-center gap-2"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    name: "radio",
-    size: 16
-  }), /*#__PURE__*/React.createElement("span", {
-    className: "font-bold tracking-wider text-sm"
-  }, "READY TRACK"))), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("img", {
+    src: BACKSTAGE_LOGO,
+    alt: "Ready Backstage",
+    className: "h-12 w-auto rounded"
+  })), /*#__PURE__*/React.createElement("div", {
     className: "text-right"
   }, /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-blue-200 uppercase tracking-wide"
@@ -439,9 +437,17 @@ function Dashboard({
   const misplaced = devices.filter(d => d.status === 'misplaced').length;
   const stale = devices.filter(d => d.status === 'stale').length;
   const missing = devices.filter(d => d.status === 'missing').length;
+  const offline = devices.filter(d => d.status === 'offline').length;
   const inAssignedZone = devices.filter(d => d.assignedZone === d.detectedZone).length;
   const healthPct = total ? Math.round(healthy / total * 100) : 0;
   const inZonePct = total ? Math.round(inAssignedZone / total * 100) : 0;
+
+  // ASSIGNED roster vs SEEN. In a real system this comes from the asset-management
+  // system of record. Here we mock it: assigned = devices in scope + a small
+  // reconciliation gap to demonstrate the unseen/unaccounted-for case.
+  const seen = devices.filter(d => d.minutesAgo !== null && d.minutesAgo < 24 * 60).length;
+  const assigned = total + Math.round(total * 0.04); // ~4% reconciliation gap
+  const unaccounted = assigned - seen;
   const healthTrend = [{
     date: 'Apr 25',
     health: 88
@@ -464,6 +470,39 @@ function Dashboard({
     date: 'May 1',
     health: healthPct
   }];
+
+  // Inventory snapshot by location, with floor breakdown
+  const byLocation = useMemo(() => {
+    const map = {};
+    devices.forEach(d => {
+      if (!map[d.location]) map[d.location] = {
+        location: d.location,
+        total: 0,
+        seen: 0,
+        floors: {}
+      };
+      map[d.location].total++;
+      if (d.minutesAgo !== null && d.minutesAgo < 24 * 60) map[d.location].seen++;
+      if (!map[d.location].floors[d.floor]) {
+        map[d.location].floors[d.floor] = {
+          floor: d.floor,
+          total: 0,
+          seen: 0
+        };
+      }
+      map[d.location].floors[d.floor].total++;
+      if (d.minutesAgo !== null && d.minutesAgo < 24 * 60) map[d.location].floors[d.floor].seen++;
+    });
+    // Add mock assigned counts (~4% gap on each location)
+    return Object.values(map).map(l => ({
+      ...l,
+      assigned: l.total + Math.max(1, Math.round(l.total * 0.04)),
+      floors: Object.values(l.floors).map(f => ({
+        ...f,
+        assigned: f.total + (Math.random() > 0.5 ? 1 : 0)
+      }))
+    }));
+  }, [devices]);
   const byFloor = useMemo(() => {
     const map = {};
     devices.forEach(d => {
@@ -497,7 +536,76 @@ function Dashboard({
     className: "text-2xl font-bold text-slate-900"
   }, "Dashboard"), /*#__PURE__*/React.createElement("p", {
     className: "text-sm text-slate-500 mt-1"
-  }, "Real-time visibility across ", total, " tracked monitors"))), /*#__PURE__*/React.createElement("div", {
+  }, "Real-time visibility across ", assigned.toLocaleString(), " assigned monitors"))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-3 border-b border-slate-200 bg-slate-50 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Inventory Snapshot"), /*#__PURE__*/React.createElement("p", {
+    className: "text-xs text-slate-500 mt-0.5"
+  }, "Assigned vs Seen, by location and floor")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-6 text-right"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 uppercase tracking-wide"
+  }, "Assigned"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xl font-bold text-slate-900"
+  }, assigned.toLocaleString())), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 uppercase tracking-wide"
+  }, "Seen (24h)"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xl font-bold text-emerald-600"
+  }, seen.toLocaleString())), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 uppercase tracking-wide"
+  }, "Unaccounted"), /*#__PURE__*/React.createElement("div", {
+    className: `text-xl font-bold ${unaccounted > 0 ? 'text-red-600' : 'text-slate-900'}`
+  }, unaccounted)))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 divide-x divide-slate-200"
+  }, byLocation.map(loc => {
+    const seenPct = Math.round(loc.seen / loc.assigned * 100);
+    return /*#__PURE__*/React.createElement("div", {
+      key: loc.location,
+      className: "p-4"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: "flex items-baseline justify-between"
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      className: "font-semibold text-slate-900 text-sm"
+    }, loc.location), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-slate-500 mt-0.5"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: "font-semibold text-slate-700"
+    }, loc.seen), " of ", /*#__PURE__*/React.createElement("span", {
+      className: "font-semibold text-slate-700"
+    }, loc.assigned), " seen")), /*#__PURE__*/React.createElement("div", {
+      className: `text-lg font-bold ${seenPct >= 95 ? 'text-emerald-600' : seenPct >= 90 ? 'text-amber-600' : 'text-red-600'}`
+    }, seenPct, "%")), /*#__PURE__*/React.createElement("div", {
+      className: "w-full h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden"
+    }, /*#__PURE__*/React.createElement("div", {
+      className: `h-full ${seenPct >= 95 ? 'bg-emerald-500' : seenPct >= 90 ? 'bg-amber-500' : 'bg-red-500'}`,
+      style: {
+        width: `${seenPct}%`
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      className: "mt-3 space-y-1.5"
+    }, loc.floors.map(f => {
+      const floorPct = Math.round(f.seen / f.assigned * 100);
+      return /*#__PURE__*/React.createElement("div", {
+        key: f.floor,
+        className: "flex items-center justify-between text-xs"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-slate-600"
+      }, f.floor), /*#__PURE__*/React.createElement("span", {
+        className: "flex items-center gap-2"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "text-slate-500"
+      }, /*#__PURE__*/React.createElement("span", {
+        className: "font-medium text-slate-700"
+      }, f.seen), "/", f.assigned), /*#__PURE__*/React.createElement("span", {
+        className: `font-semibold w-10 text-right ${floorPct >= 95 ? 'text-emerald-600' : floorPct >= 90 ? 'text-amber-600' : 'text-red-600'}`
+      }, floorPct, "%")));
+    })));
+  }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h3", {
+    className: "text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2"
+  }, "Freshness & Placement"), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-6 gap-4"
   }, /*#__PURE__*/React.createElement("div", {
     className: "col-span-2 bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between"
@@ -515,10 +623,6 @@ function Dashboard({
   }), " 2.1% vs last week")), /*#__PURE__*/React.createElement("div", {
     className: "text-xs text-slate-500 mt-2"
   }, healthy, " of ", total, " seen <30min in assigned zone")), /*#__PURE__*/React.createElement(KPICard, {
-    label: "Total Tracked",
-    value: total.toLocaleString(),
-    sublabel: "across 3 buildings"
-  }), /*#__PURE__*/React.createElement(KPICard, {
     label: "In Assigned Zone",
     value: `${inZonePct}%`,
     sublabel: `${inAssignedZone} devices`,
@@ -533,19 +637,12 @@ function Dashboard({
     value: stale,
     sublabel: "30min \u2013 24hr",
     accent: "orange"
-  })), /*#__PURE__*/React.createElement("div", {
-    className: "grid grid-cols-2 gap-4"
-  }, /*#__PURE__*/React.createElement(KPICard, {
+  }), /*#__PURE__*/React.createElement(KPICard, {
     label: "Missing",
     value: missing,
     sublabel: "No signal >24hr",
     accent: "red"
-  }), /*#__PURE__*/React.createElement(KPICard, {
-    label: "Total $ at Risk",
-    value: `$${((missing + stale) * 650).toLocaleString()}`,
-    sublabel: "At-risk asset value",
-    accent: "red"
-  })), /*#__PURE__*/React.createElement("div", {
+  }))), /*#__PURE__*/React.createElement("div", {
     className: "grid grid-cols-2 gap-4"
   }, /*#__PURE__*/React.createElement("div", {
     className: "bg-white border border-slate-200 rounded-lg p-4"
