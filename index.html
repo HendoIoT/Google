@@ -8,7 +8,6 @@
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <style>
   body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; }
 </style>
@@ -16,55 +15,72 @@
 <body class="bg-slate-50">
 <div id="root"></div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useMemo } = React;
+<script>
 const {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend
+  useState,
+  useMemo
+} = React;
+const {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
 } = Recharts;
 
 // Inline SVG icon library - no CDN dependency
 const ICON_PATHS = {
-  'layout-dashboard':  '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
-  'package':           '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
-  'shield-alert':      '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
-  'bell':              '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
-  'settings':          '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
-  'filter':            '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
-  'chevron-right':     '<path d="m9 18 6-6-6-6"/>',
-  'refresh-cw':        '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
-  'radio':             '<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/>',
-  'search':            '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
-  'battery':           '<rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/>',
-  'clock':             '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-  'map-pin':           '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
-  'alert-circle':      '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
-  'check-circle-2':    '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
-  'activity':          '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 2.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 12H2"/>',
-  'trending-up':       '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
-  'trending-down':     '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
-  'x':                 '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
+  'layout-dashboard': '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+  'package': '<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+  'shield-alert': '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  'bell': '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  'settings': '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+  'filter': '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+  'refresh-cw': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/>',
+  'radio': '<path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1"/>',
+  'search': '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  'battery': '<rect width="16" height="10" x="2" y="7" rx="2" ry="2"/><line x1="22" x2="22" y1="11" y2="13"/>',
+  'clock': '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  'map-pin': '<path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>',
+  'alert-circle': '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+  'check-circle-2': '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  'activity': '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.5.5 0 0 1-.96 0L9.24 2.18a.5.5 0 0 0-.96 0l-2.35 8.36A2 2 0 0 1 4 12H2"/>',
+  'trending-up': '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  'trending-down': '<polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/>',
+  'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'
 };
-
-function Icon({ name, className = "", size = 16 }) {
+function Icon({
+  name,
+  className = "",
+  size = 16
+}) {
   const path = ICON_PATHS[name];
   if (!path) return null;
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      style={{ display: 'inline-block', verticalAlign: 'middle' }}
-      dangerouslySetInnerHTML={{ __html: path }}
-    />
-  );
+  return /*#__PURE__*/React.createElement("svg", {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: "2",
+    strokeLinecap: "round",
+    strokeLinejoin: "round",
+    className: className,
+    style: {
+      display: 'inline-block',
+      verticalAlign: 'middle'
+    },
+    dangerouslySetInnerHTML: {
+      __html: path
+    }
+  });
 }
 
 // =========================================================================
@@ -86,12 +102,7 @@ const STRUCTURE = {
     'Floor 2': ['Hot Desks', 'Quiet Lounge']
   }
 };
-
-const MONITOR_MODELS = [
-  'Dell U2723QE', 'Dell U3223QE', 'LG 27UP850', 'ASUS ProArt PA279',
-  'Samsung S95B', 'BenQ PD2725U', 'Apple Studio Display'
-];
-
+const MONITOR_MODELS = ['Dell U2723QE', 'Dell U3223QE', 'LG 27UP850', 'ASUS ProArt PA279', 'Samsung S95B', 'BenQ PD2725U', 'Apple Studio Display'];
 function seeded(seed) {
   let s = seed;
   return () => {
@@ -99,7 +110,6 @@ function seeded(seed) {
     return s / 233280;
   };
 }
-
 function generateDevices() {
   const rng = seeded(42);
   const devices = [];
@@ -139,9 +149,14 @@ function generateDevices() {
           devices.push({
             id: `MON-${locCode}-${id}`,
             model: MONITOR_MODELS[Math.floor(rng() * MONITOR_MODELS.length)],
-            location, floor, assignedZone: zone, detectedZone, minutesAgo,
+            location,
+            floor,
+            assignedZone: zone,
+            detectedZone,
+            minutesAgo,
             battery: status === 'offline' ? null : 15 + Math.floor(rng() * 85),
-            status, value: 650
+            status,
+            value: 650
           });
         }
       });
@@ -149,7 +164,6 @@ function generateDevices() {
   });
   return devices;
 }
-
 const DEVICES = generateDevices();
 
 // =========================================================================
@@ -157,13 +171,42 @@ const DEVICES = generateDevices();
 // =========================================================================
 
 const STATUS_META = {
-  healthy:    { label: 'Healthy',    dot: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
-  misplaced:  { label: 'Misplaced',  dot: '#f59e0b', bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
-  stale:      { label: 'Stale',      dot: '#f97316', bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200' },
-  missing:    { label: 'Missing',    dot: '#ef4444', bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200' },
-  offline:    { label: 'Offline',    dot: '#94a3b8', bg: 'bg-slate-100',  text: 'text-slate-600',   border: 'border-slate-200' }
+  healthy: {
+    label: 'Healthy',
+    dot: '#10b981',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200'
+  },
+  misplaced: {
+    label: 'Misplaced',
+    dot: '#f59e0b',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200'
+  },
+  stale: {
+    label: 'Stale',
+    dot: '#f97316',
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    border: 'border-orange-200'
+  },
+  missing: {
+    label: 'Missing',
+    dot: '#ef4444',
+    bg: 'bg-red-50',
+    text: 'text-red-700',
+    border: 'border-red-200'
+  },
+  offline: {
+    label: 'Offline',
+    dot: '#94a3b8',
+    bg: 'bg-slate-100',
+    text: 'text-slate-600',
+    border: 'border-slate-200'
+  }
 };
-
 function formatLastSeen(minutes) {
   if (minutes === null || minutes === undefined) return 'Never';
   if (minutes < 1) return 'Just now';
@@ -171,7 +214,6 @@ function formatLastSeen(minutes) {
   if (minutes < 24 * 60) return `${Math.floor(minutes / 60)}h ago`;
   return `${Math.floor(minutes / (24 * 60))}d ago`;
 }
-
 function lastSeenColor(minutes, status) {
   if (status === 'offline') return 'text-slate-400';
   if (minutes === null) return 'text-slate-400';
@@ -179,7 +221,6 @@ function lastSeenColor(minutes, status) {
   if (minutes > 30) return 'text-orange-600 font-medium';
   return 'text-slate-600';
 }
-
 function suggestAction(d) {
   if (d.status === 'misplaced') return `Found in ${d.detectedZone} (${d.floor}). Relocate to ${d.assignedZone}.`;
   if (d.status === 'stale') return `Last ping in ${d.assignedZone} ${formatLastSeen(d.minutesAgo)}. Walk-by verify.`;
@@ -192,287 +233,481 @@ function suggestAction(d) {
 // SHARED COMPONENTS
 // =========================================================================
 
-function StatusBadge({ status }) {
+function StatusBadge({
+  status
+}) {
   const m = STATUS_META[status];
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${m.bg} ${m.text} ${m.border}`}>
-      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: m.dot }} />
-      {m.label}
-    </span>
-  );
+  return /*#__PURE__*/React.createElement("span", {
+    className: `inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${m.bg} ${m.text} ${m.border}`
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "w-1.5 h-1.5 rounded-full",
+    style: {
+      backgroundColor: m.dot
+    }
+  }), m.label);
 }
-
-function KPICard({ label, value, sublabel, accent = 'slate', trend, big = false }) {
+function KPICard({
+  label,
+  value,
+  sublabel,
+  accent = 'slate',
+  trend,
+  big = false
+}) {
   const accentMap = {
-    slate: 'text-slate-900', emerald: 'text-emerald-600', amber: 'text-amber-600',
-    orange: 'text-orange-600', red: 'text-red-600', blue: 'text-blue-600'
+    slate: 'text-slate-900',
+    emerald: 'text-emerald-600',
+    amber: 'text-amber-600',
+    orange: 'text-orange-600',
+    red: 'text-red-600',
+    blue: 'text-blue-600'
   };
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between min-h-[110px]">
-      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</div>
-      <div className="flex items-baseline gap-2 mt-2">
-        <div className={`${big ? 'text-4xl' : 'text-2xl'} font-bold ${accentMap[accent]}`}>{value}</div>
-        {trend !== undefined && (
-          <div className={`flex items-center text-xs font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-            <Icon name={trend >= 0 ? 'trending-up' : 'trending-down'} size={12} />
-            {Math.abs(trend)}%
-          </div>
-        )}
-      </div>
-      {sublabel && <div className="text-xs text-slate-500 mt-1">{sublabel}</div>}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between min-h-[110px]"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-medium text-slate-500 uppercase tracking-wide"
+  }, label), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline gap-2 mt-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `${big ? 'text-4xl' : 'text-2xl'} font-bold ${accentMap[accent]}`
+  }, value), trend !== undefined && /*#__PURE__*/React.createElement("div", {
+    className: `flex items-center text-xs font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-600'}`
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: trend >= 0 ? 'trending-up' : 'trending-down',
+    size: 12
+  }), Math.abs(trend), "%")), sublabel && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 mt-1"
+  }, sublabel));
 }
-
 function Header() {
-  return (
-    <header className="bg-[#1a73e8] text-white">
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-3">
-          <div className="text-2xl font-semibold tracking-tight">Google</div>
-          <div className="text-blue-200 text-sm">|</div>
-          <div className="text-sm text-blue-100">Workplace Asset Tracking</div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="px-4 py-1.5 border border-white/30 rounded-md flex items-center gap-2">
-            <Icon name="radio" size={16} />
-            <span className="font-bold tracking-wider text-sm">READY TRACK</span>
-          </div>
-        </div>
-        <div className="text-right">
-          <div className="text-xs text-blue-200 uppercase tracking-wide">Powered by</div>
-          <div className="text-sm font-semibold">READY WIRELESS</div>
-        </div>
-      </div>
-    </header>
-  );
+  return /*#__PURE__*/React.createElement("header", {
+    className: "bg-[#1a73e8] text-white"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between px-6 py-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-2xl font-semibold tracking-tight"
+  }, "Google"), /*#__PURE__*/React.createElement("div", {
+    className: "text-blue-200 text-sm"
+  }, "|"), /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-blue-100"
+  }, "Workplace Asset Tracking")), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-1.5 border border-white/30 rounded-md flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "radio",
+    size: 16
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "font-bold tracking-wider text-sm"
+  }, "READY TRACK"))), /*#__PURE__*/React.createElement("div", {
+    className: "text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-blue-200 uppercase tracking-wide"
+  }, "Powered by"), /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-semibold"
+  }, "READY WIRELESS"))));
 }
-
-function Sidebar({ currentPage, setPage }) {
-  const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
-    { id: 'inventory', label: 'Inventory', icon: 'package' },
-    { id: 'lossPrevention', label: 'Loss Prevention', icon: 'shield-alert' }
-  ];
-  const utility = [
-    { id: 'alerts', label: 'Alerts', icon: 'bell', badge: 3 },
-    { id: 'admin', label: 'Admin', icon: 'settings' }
-  ];
-  return (
-    <aside className="w-52 bg-white border-r border-slate-200 min-h-[calc(100vh-56px)] py-4">
-      <div className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tracking</div>
-      {items.map(item => {
-        const active = currentPage === item.id;
-        return (
-          <button key={item.id} onClick={() => setPage(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
-              active ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'
-            }`}>
-            <Icon name={item.icon} size={16} />
-            {item.label}
-          </button>
-        );
-      })}
-      <div className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6">System</div>
-      {utility.map(item => (
-        <button key={item.id} className="w-full flex items-center justify-between px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
-          <span className="flex items-center gap-3">
-            <Icon name={item.icon} size={16} />
-            {item.label}
-          </span>
-          {item.badge && <span className="text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5 font-medium">{item.badge}</span>}
-        </button>
-      ))}
-    </aside>
-  );
+function Sidebar({
+  currentPage,
+  setPage
+}) {
+  const items = [{
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: 'layout-dashboard'
+  }, {
+    id: 'inventory',
+    label: 'Inventory',
+    icon: 'package'
+  }, {
+    id: 'lossPrevention',
+    label: 'Loss Prevention',
+    icon: 'shield-alert'
+  }];
+  const utility = [{
+    id: 'alerts',
+    label: 'Alerts',
+    icon: 'bell',
+    badge: 3
+  }, {
+    id: 'admin',
+    label: 'Admin',
+    icon: 'settings'
+  }];
+  return /*#__PURE__*/React.createElement("aside", {
+    className: "w-52 bg-white border-r border-slate-200 min-h-[calc(100vh-56px)] py-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"
+  }, "Tracking"), items.map(item => {
+    const active = currentPage === item.id;
+    return /*#__PURE__*/React.createElement("button", {
+      key: item.id,
+      onClick: () => setPage(item.id),
+      className: `w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${active ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'}`
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: item.icon,
+      size: 16
+    }), item.label);
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6"
+  }, "System"), utility.map(item => /*#__PURE__*/React.createElement("button", {
+    key: item.id,
+    className: "w-full flex items-center justify-between px-4 py-2 text-sm text-slate-500 hover:bg-slate-50"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: item.icon,
+    size: 16
+  }), item.label), item.badge && /*#__PURE__*/React.createElement("span", {
+    className: "text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5 font-medium"
+  }, item.badge))));
 }
-
-function FilterBar({ filters, setFilters }) {
+function FilterBar({
+  filters,
+  setFilters
+}) {
   const locations = ['All Locations', ...Object.keys(STRUCTURE)];
-  const floors = filters.location !== 'All Locations'
-    ? ['All Floors', ...Object.keys(STRUCTURE[filters.location] || {})]
-    : ['All Floors'];
-  const zones = filters.location !== 'All Locations' && filters.floor !== 'All Floors'
-    ? ['All Zones', ...(STRUCTURE[filters.location]?.[filters.floor] || [])]
-    : ['All Zones'];
-
-  return (
-    <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3">
-      <Icon name="filter" size={16} className="text-slate-400" />
-      <span className="text-xs text-slate-500 font-medium uppercase tracking-wide mr-1">Scope:</span>
-      <select value={filters.location}
-        onChange={e => setFilters({ location: e.target.value, floor: 'All Floors', zone: 'All Zones' })}
-        className="border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500">
-        {locations.map(l => <option key={l}>{l}</option>)}
-      </select>
-      <Icon name="chevron-right" size={12} className="text-slate-300" />
-      <select value={filters.floor}
-        onChange={e => setFilters({ ...filters, floor: e.target.value, zone: 'All Zones' })}
-        disabled={filters.location === 'All Locations'}
-        className="border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400">
-        {floors.map(f => <option key={f}>{f}</option>)}
-      </select>
-      <Icon name="chevron-right" size={12} className="text-slate-300" />
-      <select value={filters.zone}
-        onChange={e => setFilters({ ...filters, zone: e.target.value })}
-        disabled={filters.floor === 'All Floors'}
-        className="border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400">
-        {zones.map(z => <option key={z}>{z}</option>)}
-      </select>
-      <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
-        <Icon name="refresh-cw" size={12} />
-        <span>Last refresh: May 1, 2026 2:20 PM PT</span>
-      </div>
-    </div>
-  );
+  const floors = filters.location !== 'All Locations' ? ['All Floors', ...Object.keys(STRUCTURE[filters.location] || {})] : ['All Floors'];
+  const zones = filters.location !== 'All Locations' && filters.floor !== 'All Floors' ? ['All Zones', ...(STRUCTURE[filters.location]?.[filters.floor] || [])] : ['All Zones'];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "filter",
+    size: 16,
+    className: "text-slate-400"
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs text-slate-500 font-medium uppercase tracking-wide mr-1"
+  }, "Scope:"), /*#__PURE__*/React.createElement("select", {
+    value: filters.location,
+    onChange: e => setFilters({
+      location: e.target.value,
+      floor: 'All Floors',
+      zone: 'All Zones'
+    }),
+    className: "border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500"
+  }, locations.map(l => /*#__PURE__*/React.createElement("option", {
+    key: l
+  }, l))), /*#__PURE__*/React.createElement(Icon, {
+    name: "chevron-right",
+    size: 12,
+    className: "text-slate-300"
+  }), /*#__PURE__*/React.createElement("select", {
+    value: filters.floor,
+    onChange: e => setFilters({
+      ...filters,
+      floor: e.target.value,
+      zone: 'All Zones'
+    }),
+    disabled: filters.location === 'All Locations',
+    className: "border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+  }, floors.map(f => /*#__PURE__*/React.createElement("option", {
+    key: f
+  }, f))), /*#__PURE__*/React.createElement(Icon, {
+    name: "chevron-right",
+    size: 12,
+    className: "text-slate-300"
+  }), /*#__PURE__*/React.createElement("select", {
+    value: filters.zone,
+    onChange: e => setFilters({
+      ...filters,
+      zone: e.target.value
+    }),
+    disabled: filters.floor === 'All Floors',
+    className: "border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+  }, zones.map(z => /*#__PURE__*/React.createElement("option", {
+    key: z
+  }, z))), /*#__PURE__*/React.createElement("div", {
+    className: "ml-auto flex items-center gap-2 text-xs text-slate-500"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "refresh-cw",
+    size: 12
+  }), /*#__PURE__*/React.createElement("span", null, "Last refresh: May 1, 2026 2:20 PM PT")));
 }
 
 // =========================================================================
 // PAGES
 // =========================================================================
 
-function Dashboard({ devices }) {
+function Dashboard({
+  devices
+}) {
   const total = devices.length;
   const healthy = devices.filter(d => d.status === 'healthy').length;
   const misplaced = devices.filter(d => d.status === 'misplaced').length;
   const stale = devices.filter(d => d.status === 'stale').length;
   const missing = devices.filter(d => d.status === 'missing').length;
   const inAssignedZone = devices.filter(d => d.assignedZone === d.detectedZone).length;
-  const healthPct = total ? Math.round((healthy / total) * 100) : 0;
-  const inZonePct = total ? Math.round((inAssignedZone / total) * 100) : 0;
-
-  const healthTrend = [
-    { date: 'Apr 25', health: 88 }, { date: 'Apr 26', health: 90 },
-    { date: 'Apr 27', health: 87 }, { date: 'Apr 28', health: 91 },
-    { date: 'Apr 29', health: 89 }, { date: 'Apr 30', health: 86 },
-    { date: 'May 1', health: healthPct }
-  ];
-
+  const healthPct = total ? Math.round(healthy / total * 100) : 0;
+  const inZonePct = total ? Math.round(inAssignedZone / total * 100) : 0;
+  const healthTrend = [{
+    date: 'Apr 25',
+    health: 88
+  }, {
+    date: 'Apr 26',
+    health: 90
+  }, {
+    date: 'Apr 27',
+    health: 87
+  }, {
+    date: 'Apr 28',
+    health: 91
+  }, {
+    date: 'Apr 29',
+    health: 89
+  }, {
+    date: 'Apr 30',
+    health: 86
+  }, {
+    date: 'May 1',
+    health: healthPct
+  }];
   const byFloor = useMemo(() => {
     const map = {};
     devices.forEach(d => {
       const key = `${d.location.split(' ')[0]} ${d.floor.replace('Floor ', 'F')}`;
-      if (!map[key]) map[key] = { floor: key, healthy: 0, misplaced: 0, stale: 0, missing: 0 };
+      if (!map[key]) map[key] = {
+        floor: key,
+        healthy: 0,
+        misplaced: 0,
+        stale: 0,
+        missing: 0
+      };
       if (d.status !== 'offline') map[key][d.status]++;
     });
     return Object.values(map);
   }, [devices]);
-
-  const needsAttention = devices
-    .filter(d => d.status !== 'healthy')
-    .sort((a, b) => {
-      const order = { missing: 0, stale: 1, misplaced: 2, offline: 3 };
-      if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
-      return (b.minutesAgo || 0) - (a.minutesAgo || 0);
-    })
-    .slice(0, 6);
-
-  return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-end justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-          <p className="text-sm text-slate-500 mt-1">Real-time visibility across {total} tracked monitors</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-6 gap-4">
-        <div className="col-span-2 bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
-          <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Inventory Health</div>
-          <div className="flex items-baseline gap-3 mt-2">
-            <div className="text-5xl font-bold text-emerald-600">{healthPct}%</div>
-            <div className="text-sm text-emerald-600 flex items-center gap-1">
-              <Icon name="trending-up" size={12} /> 2.1% vs last week
-            </div>
-          </div>
-          <div className="text-xs text-slate-500 mt-2">{healthy} of {total} seen &lt;30min in assigned zone</div>
-        </div>
-        <KPICard label="Total Tracked" value={total.toLocaleString()} sublabel="across 3 buildings" />
-        <KPICard label="In Assigned Zone" value={`${inZonePct}%`} sublabel={`${inAssignedZone} devices`} accent="blue" />
-        <KPICard label="Misplaced" value={misplaced} sublabel="seen, wrong zone" accent="amber" />
-        <KPICard label="Stale" value={stale} sublabel="30min – 24hr" accent="orange" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <KPICard label="Missing" value={missing} sublabel="No signal >24hr" accent="red" />
-        <KPICard label="Total $ at Risk" value={`$${((missing + stale) * 650).toLocaleString()}`} sublabel="At-risk asset value" accent="red" />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-slate-900 text-sm">Inventory Health — Last 7 Days</h3>
-            <div className="flex gap-1 text-xs">
-              <button className="px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium">7d</button>
-              <button className="px-2 py-1 text-slate-500 hover:bg-slate-50 rounded">30d</button>
-            </div>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={healthTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} />
-              <YAxis domain={[70, 100]} tick={{ fontSize: 11, fill: '#64748b' }} unit="%" />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
-              <Line type="monotone" dataKey="health" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-semibold text-slate-900 text-sm">Status Breakdown by Floor</h3>
-            <button className="text-xs text-blue-600 hover:underline">View detail →</button>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={byFloor} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="floor" tick={{ fontSize: 10, fill: '#64748b' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="healthy" stackId="a" fill="#10b981" />
-              <Bar dataKey="misplaced" stackId="a" fill="#f59e0b" />
-              <Bar dataKey="stale" stackId="a" fill="#f97316" />
-              <Bar dataKey="missing" stackId="a" fill="#ef4444" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-lg">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <Icon name="alert-circle" size={16} className="text-amber-600" />
-            <h3 className="font-semibold text-slate-900 text-sm">Needs Attention</h3>
-            <span className="text-xs text-slate-500">Top {needsAttention.length} of {misplaced + stale + missing} flagged devices</span>
-          </div>
-          <button className="text-xs text-blue-600 hover:underline">View all in Loss Prevention →</button>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {needsAttention.map(d => (
-            <div key={d.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50">
-              <StatusBadge status={d.status} />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-slate-900">{d.id} <span className="text-slate-400 font-normal">— {d.model}</span></div>
-                <div className="text-xs text-slate-500 mt-0.5">{suggestAction(d)}</div>
-              </div>
-              <div className="text-right">
-                <div className={`text-xs ${lastSeenColor(d.minutesAgo, d.status)}`}>Last seen {formatLastSeen(d.minutesAgo)}</div>
-                <div className="text-xs text-slate-400">{d.location.split(' ')[0]} / {d.floor} / {d.detectedZone || '—'}</div>
-              </div>
-              <Icon name="chevron-right" size={16} className="text-slate-300" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const needsAttention = devices.filter(d => d.status !== 'healthy').sort((a, b) => {
+    const order = {
+      missing: 0,
+      stale: 1,
+      misplaced: 2,
+      offline: 3
+    };
+    if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+    return (b.minutesAgo || 0) - (a.minutesAgo || 0);
+  }).slice(0, 6);
+  return /*#__PURE__*/React.createElement("div", {
+    className: "p-6 space-y-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-end justify-between"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "text-2xl font-bold text-slate-900"
+  }, "Dashboard"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-slate-500 mt-1"
+  }, "Real-time visibility across ", total, " tracked monitors"))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-6 gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "col-span-2 bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-medium text-slate-500 uppercase tracking-wide"
+  }, "Inventory Health"), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-baseline gap-3 mt-2"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-5xl font-bold text-emerald-600"
+  }, healthPct, "%"), /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-emerald-600 flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "trending-up",
+    size: 12
+  }), " 2.1% vs last week")), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 mt-2"
+  }, healthy, " of ", total, " seen <30min in assigned zone")), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Total Tracked",
+    value: total.toLocaleString(),
+    sublabel: "across 3 buildings"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "In Assigned Zone",
+    value: `${inZonePct}%`,
+    sublabel: `${inAssignedZone} devices`,
+    accent: "blue"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Misplaced",
+    value: misplaced,
+    sublabel: "seen, wrong zone",
+    accent: "amber"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Stale",
+    value: stale,
+    sublabel: "30min \u2013 24hr",
+    accent: "orange"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement(KPICard, {
+    label: "Missing",
+    value: missing,
+    sublabel: "No signal >24hr",
+    accent: "red"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Total $ at Risk",
+    value: `$${((missing + stale) * 650).toLocaleString()}`,
+    sublabel: "At-risk asset value",
+    accent: "red"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Inventory Health \u2014 Last 7 Days"), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-1 text-xs"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium"
+  }, "7d"), /*#__PURE__*/React.createElement("button", {
+    className: "px-2 py-1 text-slate-500 hover:bg-slate-50 rounded"
+  }, "30d"))), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 220
+  }, /*#__PURE__*/React.createElement(LineChart, {
+    data: healthTrend,
+    margin: {
+      top: 10,
+      right: 10,
+      left: -10,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: "#e2e8f0"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "date",
+    tick: {
+      fontSize: 11,
+      fill: '#64748b'
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    domain: [70, 100],
+    tick: {
+      fontSize: 11,
+      fill: '#64748b'
+    },
+    unit: "%"
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      fontSize: 12,
+      borderRadius: 6
+    }
+  }), /*#__PURE__*/React.createElement(Line, {
+    type: "monotone",
+    dataKey: "health",
+    stroke: "#10b981",
+    strokeWidth: 2.5,
+    dot: {
+      r: 3
+    },
+    activeDot: {
+      r: 5
+    }
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg p-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-2"
+  }, /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Status Breakdown by Floor"), /*#__PURE__*/React.createElement("button", {
+    className: "text-xs text-blue-600 hover:underline"
+  }, "View detail \u2192")), /*#__PURE__*/React.createElement(ResponsiveContainer, {
+    width: "100%",
+    height: 220
+  }, /*#__PURE__*/React.createElement(BarChart, {
+    data: byFloor,
+    margin: {
+      top: 10,
+      right: 10,
+      left: -20,
+      bottom: 0
+    }
+  }, /*#__PURE__*/React.createElement(CartesianGrid, {
+    strokeDasharray: "3 3",
+    stroke: "#e2e8f0"
+  }), /*#__PURE__*/React.createElement(XAxis, {
+    dataKey: "floor",
+    tick: {
+      fontSize: 10,
+      fill: '#64748b'
+    }
+  }), /*#__PURE__*/React.createElement(YAxis, {
+    tick: {
+      fontSize: 11,
+      fill: '#64748b'
+    }
+  }), /*#__PURE__*/React.createElement(Tooltip, {
+    contentStyle: {
+      fontSize: 12,
+      borderRadius: 6
+    }
+  }), /*#__PURE__*/React.createElement(Legend, {
+    wrapperStyle: {
+      fontSize: 11
+    }
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "healthy",
+    stackId: "a",
+    fill: "#10b981"
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "misplaced",
+    stackId: "a",
+    fill: "#f59e0b"
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "stale",
+    stackId: "a",
+    fill: "#f97316"
+  }), /*#__PURE__*/React.createElement(Bar, {
+    dataKey: "missing",
+    stackId: "a",
+    fill: "#ef4444"
+  }))))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between px-4 py-3 border-b border-slate-200"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "alert-circle",
+    size: 16,
+    className: "text-amber-600"
+  }), /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Needs Attention"), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs text-slate-500"
+  }, "Top ", needsAttention.length, " of ", misplaced + stale + missing, " flagged devices")), /*#__PURE__*/React.createElement("button", {
+    className: "text-xs text-blue-600 hover:underline"
+  }, "View all in Loss Prevention \u2192")), /*#__PURE__*/React.createElement("div", {
+    className: "divide-y divide-slate-100"
+  }, needsAttention.map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id,
+    className: "px-4 py-3 flex items-center gap-4 hover:bg-slate-50"
+  }, /*#__PURE__*/React.createElement(StatusBadge, {
+    status: d.status
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-sm font-medium text-slate-900"
+  }, d.id, " ", /*#__PURE__*/React.createElement("span", {
+    className: "text-slate-400 font-normal"
+  }, "\u2014 ", d.model)), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 mt-0.5"
+  }, suggestAction(d))), /*#__PURE__*/React.createElement("div", {
+    className: "text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `text-xs ${lastSeenColor(d.minutesAgo, d.status)}`
+  }, "Last seen ", formatLastSeen(d.minutesAgo)), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, d.location.split(' ')[0], " / ", d.floor, " / ", d.detectedZone || '—')), /*#__PURE__*/React.createElement(Icon, {
+    name: "chevron-right",
+    size: 16,
+    className: "text-slate-300"
+  }))))));
 }
-
-function Inventory({ devices, onSelectDevice }) {
+function Inventory({
+  devices,
+  onSelectDevice
+}) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-
   const filtered = devices.filter(d => {
     if (statusFilter === 'inZone' && d.assignedZone !== d.detectedZone) return false;
     if (statusFilter === 'outOfZone' && d.assignedZone === d.detectedZone) return false;
@@ -480,129 +715,184 @@ function Inventory({ devices, onSelectDevice }) {
     if (search && !d.id.toLowerCase().includes(search.toLowerCase()) && !d.model.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
-
   const total = devices.length;
   const healthy = devices.filter(d => d.status === 'healthy').length;
   const seen = devices.filter(d => d.minutesAgo !== null && d.minutesAgo < 30).length;
   const notSeen = total - seen;
   const inZone = devices.filter(d => d.assignedZone === d.detectedZone).length;
-
-  const chips = [
-    { id: 'all', label: 'All', count: devices.length },
-    { id: 'healthy', label: 'Healthy', count: devices.filter(d => d.status === 'healthy').length },
-    { id: 'misplaced', label: 'Misplaced', count: devices.filter(d => d.status === 'misplaced').length },
-    { id: 'stale', label: 'Stale', count: devices.filter(d => d.status === 'stale').length },
-    { id: 'missing', label: 'Missing', count: devices.filter(d => d.status === 'missing').length },
-    { id: 'outOfZone', label: 'Not in Assigned Zone', count: devices.filter(d => d.assignedZone !== d.detectedZone).length }
-  ];
-
-  return (
-    <div className="p-6 space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
-        <p className="text-sm text-slate-500 mt-1">Searchable, filterable view of every tracked monitor.</p>
-      </div>
-
-      <div className="grid grid-cols-5 gap-4">
-        <KPICard label="Total Devices" value={total.toLocaleString()} />
-        <KPICard label="Healthy" value={healthy} sublabel={total ? `${Math.round(healthy/total*100)}%` : '—'} accent="emerald" />
-        <KPICard label="Seen <30 min" value={seen} accent="emerald" />
-        <KPICard label="Not Seen <30 min" value={notSeen} accent="amber" />
-        <KPICard label="In Assigned Zone" value={total ? `${Math.round(inZone/total*100)}%` : '—'} sublabel={`${inZone} of ${total}`} accent="blue" />
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
-        <div className="flex gap-3">
-          <div className="flex-1 relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-              <Icon name="search" size={16} />
-            </span>
-            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search by Asset ID, model, or zone..."
-              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
-          </div>
-          <button className="px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1.5">
-            <Icon name="filter" size={16} /> Advanced
-          </button>
-          <button className="px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 hover:bg-slate-50">Export CSV</button>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          {chips.map(c => (
-            <button key={c.id} onClick={() => setStatusFilter(c.id)}
-              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                statusFilter === c.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-              }`}>
-              {c.label} <span className={statusFilter === c.id ? 'text-blue-100' : 'text-slate-400'}>· {c.count}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-        <div className="px-4 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
-          <div className="text-xs text-slate-600">
-            Showing <span className="font-semibold text-slate-900">{filtered.length}</span> of {devices.length} devices
-          </div>
-          <div className="text-xs text-slate-500">Click any row for details</div>
-        </div>
-        <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
-              <tr className="text-left text-xs text-slate-500 uppercase tracking-wide">
-                <th className="px-4 py-2.5 font-semibold">Asset ID</th>
-                <th className="px-4 py-2.5 font-semibold">Model</th>
-                <th className="px-4 py-2.5 font-semibold">Status</th>
-                <th className="px-4 py-2.5 font-semibold">Assigned Zone</th>
-                <th className="px-4 py-2.5 font-semibold">Detected Zone</th>
-                <th className="px-4 py-2.5 font-semibold">Last Seen</th>
-                <th className="px-4 py-2.5 font-semibold">Battery</th>
-                <th className="px-4 py-2.5"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.slice(0, 200).map(d => {
-                const mismatch = d.assignedZone !== d.detectedZone;
-                const rowTint =
-                  d.status === 'missing' ? 'bg-red-50/50 hover:bg-red-50' :
-                  d.status === 'stale' ? 'bg-orange-50/40 hover:bg-orange-50' :
-                  d.status === 'misplaced' ? 'bg-amber-50/40 hover:bg-amber-50' :
-                  'hover:bg-slate-50';
-                return (
-                  <tr key={d.id} className={`${rowTint} cursor-pointer`} onClick={() => onSelectDevice(d)}>
-                    <td className="px-4 py-2.5 font-mono text-xs font-medium text-slate-900">{d.id}</td>
-                    <td className="px-4 py-2.5 text-slate-700">{d.model}</td>
-                    <td className="px-4 py-2.5"><StatusBadge status={d.status} /></td>
-                    <td className="px-4 py-2.5 text-slate-700">
-                      <div>{d.assignedZone}</div>
-                      <div className="text-xs text-slate-400">{d.location.split(' ')[0]} · {d.floor}</div>
-                    </td>
-                    <td className={`px-4 py-2.5 ${mismatch ? 'text-red-600 font-semibold' : 'text-slate-700'}`}>
-                      {d.detectedZone || <span className="text-slate-400 italic">No signal</span>}
-                    </td>
-                    <td className={`px-4 py-2.5 ${lastSeenColor(d.minutesAgo, d.status)}`}>{formatLastSeen(d.minutesAgo)}</td>
-                    <td className="px-4 py-2.5">
-                      {d.battery !== null ? (
-                        <div className="flex items-center gap-1.5">
-                          <span className={d.battery < 20 ? 'text-red-500' : d.battery < 40 ? 'text-amber-500' : 'text-slate-400'}>
-                            <Icon name="battery" size={14} />
-                          </span>
-                          <span className={`text-xs ${d.battery < 20 ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>{d.battery}%</span>
-                        </div>
-                      ) : <span className="text-slate-400 text-xs">—</span>}
-                    </td>
-                    <td className="px-4 py-2.5"><Icon name="chevron-right" size={16} className="text-slate-300" /></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+  const chips = [{
+    id: 'all',
+    label: 'All',
+    count: devices.length
+  }, {
+    id: 'healthy',
+    label: 'Healthy',
+    count: devices.filter(d => d.status === 'healthy').length
+  }, {
+    id: 'misplaced',
+    label: 'Misplaced',
+    count: devices.filter(d => d.status === 'misplaced').length
+  }, {
+    id: 'stale',
+    label: 'Stale',
+    count: devices.filter(d => d.status === 'stale').length
+  }, {
+    id: 'missing',
+    label: 'Missing',
+    count: devices.filter(d => d.status === 'missing').length
+  }, {
+    id: 'outOfZone',
+    label: 'Not in Assigned Zone',
+    count: devices.filter(d => d.assignedZone !== d.detectedZone).length
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "p-6 space-y-5"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "text-2xl font-bold text-slate-900"
+  }, "Inventory"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-slate-500 mt-1"
+  }, "Searchable, filterable view of every tracked monitor.")), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-5 gap-4"
+  }, /*#__PURE__*/React.createElement(KPICard, {
+    label: "Total Devices",
+    value: total.toLocaleString()
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Healthy",
+    value: healthy,
+    sublabel: total ? `${Math.round(healthy / total * 100)}%` : '—',
+    accent: "emerald"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Seen <30 min",
+    value: seen,
+    accent: "emerald"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Not Seen <30 min",
+    value: notSeen,
+    accent: "amber"
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "In Assigned Zone",
+    value: total ? `${Math.round(inZone / total * 100)}%` : '—',
+    sublabel: `${inZone} of ${total}`,
+    accent: "blue"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg p-4 space-y-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 relative"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "search",
+    size: 16
+  })), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Search by Asset ID, model, or zone...",
+    className: "w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500"
+  })), /*#__PURE__*/React.createElement("button", {
+    className: "px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1.5"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "filter",
+    size: 16
+  }), " Advanced"), /*#__PURE__*/React.createElement("button", {
+    className: "px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 hover:bg-slate-50"
+  }, "Export CSV")), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 flex-wrap"
+  }, chips.map(c => /*#__PURE__*/React.createElement("button", {
+    key: c.id,
+    onClick: () => setStatusFilter(c.id),
+    className: `px-3 py-1 rounded-full text-xs font-medium border transition-colors ${statusFilter === c.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`
+  }, c.label, " ", /*#__PURE__*/React.createElement("span", {
+    className: statusFilter === c.id ? 'text-blue-100' : 'text-slate-400'
+  }, "\xB7 ", c.count))))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-600"
+  }, "Showing ", /*#__PURE__*/React.createElement("span", {
+    className: "font-semibold text-slate-900"
+  }, filtered.length), " of ", devices.length, " devices"), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Click any row for details")), /*#__PURE__*/React.createElement("div", {
+    className: "overflow-x-auto max-h-[520px] overflow-y-auto"
+  }, /*#__PURE__*/React.createElement("table", {
+    className: "w-full text-sm"
+  }, /*#__PURE__*/React.createElement("thead", {
+    className: "bg-slate-50 border-b border-slate-200 sticky top-0"
+  }, /*#__PURE__*/React.createElement("tr", {
+    className: "text-left text-xs text-slate-500 uppercase tracking-wide"
+  }, /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Asset ID"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Model"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Status"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Assigned Zone"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Detected Zone"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Last Seen"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5 font-semibold"
+  }, "Battery"), /*#__PURE__*/React.createElement("th", {
+    className: "px-4 py-2.5"
+  }))), /*#__PURE__*/React.createElement("tbody", {
+    className: "divide-y divide-slate-100"
+  }, filtered.slice(0, 200).map(d => {
+    const mismatch = d.assignedZone !== d.detectedZone;
+    const rowTint = d.status === 'missing' ? 'bg-red-50/50 hover:bg-red-50' : d.status === 'stale' ? 'bg-orange-50/40 hover:bg-orange-50' : d.status === 'misplaced' ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-slate-50';
+    return /*#__PURE__*/React.createElement("tr", {
+      key: d.id,
+      className: `${rowTint} cursor-pointer`,
+      onClick: () => onSelectDevice(d)
+    }, /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-2.5 font-mono text-xs font-medium text-slate-900"
+    }, d.id), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-2.5 text-slate-700"
+    }, d.model), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-2.5"
+    }, /*#__PURE__*/React.createElement(StatusBadge, {
+      status: d.status
+    })), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-2.5 text-slate-700"
+    }, /*#__PURE__*/React.createElement("div", null, d.assignedZone), /*#__PURE__*/React.createElement("div", {
+      className: "text-xs text-slate-400"
+    }, d.location.split(' ')[0], " \xB7 ", d.floor)), /*#__PURE__*/React.createElement("td", {
+      className: `px-4 py-2.5 ${mismatch ? 'text-red-600 font-semibold' : 'text-slate-700'}`
+    }, d.detectedZone || /*#__PURE__*/React.createElement("span", {
+      className: "text-slate-400 italic"
+    }, "No signal")), /*#__PURE__*/React.createElement("td", {
+      className: `px-4 py-2.5 ${lastSeenColor(d.minutesAgo, d.status)}`
+    }, formatLastSeen(d.minutesAgo)), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-2.5"
+    }, d.battery !== null ? /*#__PURE__*/React.createElement("div", {
+      className: "flex items-center gap-1.5"
+    }, /*#__PURE__*/React.createElement("span", {
+      className: d.battery < 20 ? 'text-red-500' : d.battery < 40 ? 'text-amber-500' : 'text-slate-400'
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "battery",
+      size: 14
+    })), /*#__PURE__*/React.createElement("span", {
+      className: `text-xs ${d.battery < 20 ? 'text-red-600 font-semibold' : 'text-slate-600'}`
+    }, d.battery, "%")) : /*#__PURE__*/React.createElement("span", {
+      className: "text-slate-400 text-xs"
+    }, "\u2014")), /*#__PURE__*/React.createElement("td", {
+      className: "px-4 py-2.5"
+    }, /*#__PURE__*/React.createElement(Icon, {
+      name: "chevron-right",
+      size: 16,
+      className: "text-slate-300"
+    })));
+  }))))));
 }
-
-function LossPrevention({ devices, onSelectDevice }) {
+function LossPrevention({
+  devices,
+  onSelectDevice
+}) {
   const misplaced = devices.filter(d => d.status === 'misplaced');
   const stale = devices.filter(d => d.status === 'stale');
   const missing = devices.filter(d => d.status === 'missing');
@@ -611,203 +901,304 @@ function LossPrevention({ devices, onSelectDevice }) {
   const valueAtRisk = atRisk * 650;
   const recoveryRate = 87;
   const avgTimeToRecovery = '4.2h';
-
   const recoverable = [...misplaced, ...stale].sort((a, b) => (a.minutesAgo || 0) - (b.minutesAgo || 0));
   const investigate = [...missing, ...offline];
-
-  const actionLog = [
-    { time: '1h ago',  user: 'kchen@google.com',     action: 'Recovered',  device: 'MON-MOU-1042', detail: 'Found in Conference A — relocated to Engineering Bay' },
-    { time: '3h ago',  user: 'jpark@google.com',     action: 'Escalated',  device: 'MON-SUN-1188', detail: 'Notified facilities — missing 28h' },
-    { time: '6h ago',  user: 'system',                action: 'Auto-flag', device: 'MON-MOU-1014', detail: 'Crossed 24h threshold — marked Missing' },
-    { time: '1d ago',  user: 'arao@google.com',      action: 'Recovered',  device: 'MON-KIR-1066', detail: 'Tag reseated — back online' },
-    { time: '2d ago',  user: 'mdiaz@google.com',     action: 'Recovered',  device: 'MON-MOU-1107', detail: 'Found in storage — re-shelved to Quiet Zone' }
-  ];
-
-  return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Loss Prevention</h1>
-        <p className="text-sm text-slate-500 mt-1">Prioritized recovery workflow for at-risk and missing inventory.</p>
-      </div>
-
-      <div className="grid grid-cols-4 gap-4">
-        <KPICard label="Devices at Risk" value={atRisk} sublabel="Misplaced + Stale + Missing" accent="red" big />
-        <KPICard label="Asset Value at Risk" value={`$${valueAtRisk.toLocaleString()}`} accent="red" big />
-        <KPICard label="Recovery Rate (30d)" value={`${recoveryRate}%`} sublabel="Found within SLA" accent="emerald" trend={5} />
-        <KPICard label="Avg Time to Recovery" value={avgTimeToRecovery} sublabel="From flag to recovery" accent="blue" trend={-12} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-amber-50">
-            <div className="flex items-center gap-2">
-              <Icon name="check-circle-2" size={16} className="text-amber-600" />
-              <h3 className="font-semibold text-slate-900 text-sm">Likely Recoverable</h3>
-              <span className="ml-auto text-xs text-slate-500">{recoverable.length} devices · still pinging</span>
-            </div>
-            <div className="text-xs text-slate-600 mt-1">Misplaced or recently stale — actionable now.</div>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
-            {recoverable.slice(0, 12).map(d => (
-              <div key={d.id} className="p-3 hover:bg-slate-50 cursor-pointer" onClick={() => onSelectDevice(d)}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={d.status} />
-                      <span className="text-xs font-mono font-semibold text-slate-900">{d.id}</span>
-                    </div>
-                    <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">{suggestAction(d)}</div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5">
-                      <span className="flex items-center gap-1"><Icon name="map-pin" size={12} />{d.location.split(' ')[0]} / {d.floor}</span>
-                      <span className="flex items-center gap-1"><Icon name="clock" size={12} />{formatLastSeen(d.minutesAgo)}</span>
-                    </div>
-                  </div>
-                  <button className="text-xs px-2.5 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">Take action</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-200 bg-red-50">
-            <div className="flex items-center gap-2">
-              <Icon name="shield-alert" size={16} className="text-red-600" />
-              <h3 className="font-semibold text-slate-900 text-sm">Investigation Needed</h3>
-              <span className="ml-auto text-xs text-slate-500">{investigate.length} devices · escalation track</span>
-            </div>
-            <div className="text-xs text-slate-600 mt-1">Missing &gt;24hr or never reported — requires owner outreach.</div>
-          </div>
-          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
-            {investigate.length === 0 ? (
-              <div className="p-6 text-center text-sm text-slate-400">
-                <span className="text-emerald-300 inline-block mb-2"><Icon name="check-circle-2" size={32} /></span>
-                <div>No devices currently require investigation.</div>
-              </div>
-            ) : investigate.map(d => (
-              <div key={d.id} className="p-3 hover:bg-slate-50 cursor-pointer" onClick={() => onSelectDevice(d)}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <StatusBadge status={d.status} />
-                      <span className="text-xs font-mono font-semibold text-slate-900">{d.id}</span>
-                    </div>
-                    <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">{suggestAction(d)}</div>
-                    <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5">
-                      <span className="flex items-center gap-1"><Icon name="map-pin" size={12} />{d.location.split(' ')[0]} / {d.floor} / {d.assignedZone}</span>
-                      <span className="flex items-center gap-1 text-red-600 font-medium"><Icon name="clock" size={12} />{formatLastSeen(d.minutesAgo)}</span>
-                    </div>
-                  </div>
-                  <button className="text-xs px-2.5 py-1 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">Escalate</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-lg">
-        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon name="activity" size={16} className="text-slate-500" />
-            <h3 className="font-semibold text-slate-900 text-sm">Recent Recovery Activity</h3>
-          </div>
-          <button className="text-xs text-blue-600 hover:underline">View full audit log →</button>
-        </div>
-        <div className="divide-y divide-slate-100">
-          {actionLog.map((a, i) => (
-            <div key={i} className="px-4 py-2.5 flex items-center gap-4 text-sm">
-              <div className="text-xs text-slate-400 w-16 shrink-0">{a.time}</div>
-              <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                a.action === 'Recovered' ? 'bg-emerald-50 text-emerald-700' :
-                a.action === 'Escalated' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'
-              }`}>{a.action}</div>
-              <div className="font-mono text-xs text-slate-700">{a.device}</div>
-              <div className="text-slate-600 text-xs flex-1">{a.detail}</div>
-              <div className="text-xs text-slate-400">{a.user}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  const actionLog = [{
+    time: '1h ago',
+    user: 'kchen@google.com',
+    action: 'Recovered',
+    device: 'MON-MOU-1042',
+    detail: 'Found in Conference A — relocated to Engineering Bay'
+  }, {
+    time: '3h ago',
+    user: 'jpark@google.com',
+    action: 'Escalated',
+    device: 'MON-SUN-1188',
+    detail: 'Notified facilities — missing 28h'
+  }, {
+    time: '6h ago',
+    user: 'system',
+    action: 'Auto-flag',
+    device: 'MON-MOU-1014',
+    detail: 'Crossed 24h threshold — marked Missing'
+  }, {
+    time: '1d ago',
+    user: 'arao@google.com',
+    action: 'Recovered',
+    device: 'MON-KIR-1066',
+    detail: 'Tag reseated — back online'
+  }, {
+    time: '2d ago',
+    user: 'mdiaz@google.com',
+    action: 'Recovered',
+    device: 'MON-MOU-1107',
+    detail: 'Found in storage — re-shelved to Quiet Zone'
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "p-6 space-y-6"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h1", {
+    className: "text-2xl font-bold text-slate-900"
+  }, "Loss Prevention"), /*#__PURE__*/React.createElement("p", {
+    className: "text-sm text-slate-500 mt-1"
+  }, "Prioritized recovery workflow for at-risk and missing inventory.")), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-4 gap-4"
+  }, /*#__PURE__*/React.createElement(KPICard, {
+    label: "Devices at Risk",
+    value: atRisk,
+    sublabel: "Misplaced + Stale + Missing",
+    accent: "red",
+    big: true
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Asset Value at Risk",
+    value: `$${valueAtRisk.toLocaleString()}`,
+    accent: "red",
+    big: true
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Recovery Rate (30d)",
+    value: `${recoveryRate}%`,
+    sublabel: "Found within SLA",
+    accent: "emerald",
+    trend: 5
+  }), /*#__PURE__*/React.createElement(KPICard, {
+    label: "Avg Time to Recovery",
+    value: avgTimeToRecovery,
+    sublabel: "From flag to recovery",
+    accent: "blue",
+    trend: -12
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-3 border-b border-slate-200 bg-amber-50"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "check-circle-2",
+    size: 16,
+    className: "text-amber-600"
+  }), /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Likely Recoverable"), /*#__PURE__*/React.createElement("span", {
+    className: "ml-auto text-xs text-slate-500"
+  }, recoverable.length, " devices \xB7 still pinging")), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-600 mt-1"
+  }, "Misplaced or recently stale \u2014 actionable now.")), /*#__PURE__*/React.createElement("div", {
+    className: "divide-y divide-slate-100 max-h-[480px] overflow-y-auto"
+  }, recoverable.slice(0, 12).map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id,
+    className: "p-3 hover:bg-slate-50 cursor-pointer",
+    onClick: () => onSelectDevice(d)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(StatusBadge, {
+    status: d.status
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-mono font-semibold text-slate-900"
+  }, d.id)), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-600 mt-1.5 leading-relaxed"
+  }, suggestAction(d)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 text-xs text-slate-400 mt-1.5"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "map-pin",
+    size: 12
+  }), d.location.split(' ')[0], " / ", d.floor), /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "clock",
+    size: 12
+  }), formatLastSeen(d.minutesAgo)))), /*#__PURE__*/React.createElement("button", {
+    className: "text-xs px-2.5 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+  }, "Take action")))))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg overflow-hidden"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-3 border-b border-slate-200 bg-red-50"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "shield-alert",
+    size: 16,
+    className: "text-red-600"
+  }), /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Investigation Needed"), /*#__PURE__*/React.createElement("span", {
+    className: "ml-auto text-xs text-slate-500"
+  }, investigate.length, " devices \xB7 escalation track")), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-600 mt-1"
+  }, "Missing >24hr or never reported \u2014 requires owner outreach.")), /*#__PURE__*/React.createElement("div", {
+    className: "divide-y divide-slate-100 max-h-[480px] overflow-y-auto"
+  }, investigate.length === 0 ? /*#__PURE__*/React.createElement("div", {
+    className: "p-6 text-center text-sm text-slate-400"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "text-emerald-300 inline-block mb-2"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "check-circle-2",
+    size: 32
+  })), /*#__PURE__*/React.createElement("div", null, "No devices currently require investigation.")) : investigate.map(d => /*#__PURE__*/React.createElement("div", {
+    key: d.id,
+    className: "p-3 hover:bg-slate-50 cursor-pointer",
+    onClick: () => onSelectDevice(d)
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(StatusBadge, {
+    status: d.status
+  }), /*#__PURE__*/React.createElement("span", {
+    className: "text-xs font-mono font-semibold text-slate-900"
+  }, d.id)), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-600 mt-1.5 leading-relaxed"
+  }, suggestAction(d)), /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3 text-xs text-slate-400 mt-1.5"
+  }, /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-1"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "map-pin",
+    size: 12
+  }), d.location.split(' ')[0], " / ", d.floor, " / ", d.assignedZone), /*#__PURE__*/React.createElement("span", {
+    className: "flex items-center gap-1 text-red-600 font-medium"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "clock",
+    size: 12
+  }), formatLastSeen(d.minutesAgo)))), /*#__PURE__*/React.createElement("button", {
+    className: "text-xs px-2.5 py-1 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap"
+  }, "Escalate"))))))), /*#__PURE__*/React.createElement("div", {
+    className: "bg-white border border-slate-200 rounded-lg"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-4 py-3 border-b border-slate-200 flex items-center justify-between"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-2"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "activity",
+    size: 16,
+    className: "text-slate-500"
+  }), /*#__PURE__*/React.createElement("h3", {
+    className: "font-semibold text-slate-900 text-sm"
+  }, "Recent Recovery Activity")), /*#__PURE__*/React.createElement("button", {
+    className: "text-xs text-blue-600 hover:underline"
+  }, "View full audit log \u2192")), /*#__PURE__*/React.createElement("div", {
+    className: "divide-y divide-slate-100"
+  }, actionLog.map((a, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "px-4 py-2.5 flex items-center gap-4 text-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-400 w-16 shrink-0"
+  }, a.time), /*#__PURE__*/React.createElement("div", {
+    className: `text-xs font-medium px-2 py-0.5 rounded-full ${a.action === 'Recovered' ? 'bg-emerald-50 text-emerald-700' : a.action === 'Escalated' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'}`
+  }, a.action), /*#__PURE__*/React.createElement("div", {
+    className: "font-mono text-xs text-slate-700"
+  }, a.device), /*#__PURE__*/React.createElement("div", {
+    className: "text-slate-600 text-xs flex-1"
+  }, a.detail), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, a.user))))));
 }
-
-function DeviceDrawer({ device, onClose }) {
+function DeviceDrawer({
+  device,
+  onClose
+}) {
   if (!device) return null;
   const mismatch = device.assignedZone !== device.detectedZone;
-  const timeline = [
-    { time: 'Now', zone: device.detectedZone || 'No signal', current: true },
-    { time: '2h ago', zone: device.assignedZone },
-    { time: '5h ago', zone: device.assignedZone },
-    { time: '1d ago', zone: device.assignedZone },
-    { time: '2d ago', zone: device.assignedZone }
-  ];
-  return (
-    <div className="fixed inset-0 z-50 flex">
-      <div className="flex-1 bg-black/30" onClick={onClose} />
-      <div className="w-[440px] bg-white border-l border-slate-200 shadow-xl overflow-y-auto">
-        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
-          <div>
-            <div className="text-xs text-slate-500 uppercase tracking-wide">Device Detail</div>
-            <div className="font-mono font-semibold text-slate-900">{device.id}</div>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded text-slate-500">
-            <Icon name="x" size={16} />
-          </button>
-        </div>
-        <div className="p-5 space-y-5">
-          <div>
-            <StatusBadge status={device.status} />
-            <div className="mt-3 text-lg font-semibold text-slate-900">{device.model}</div>
-            <div className="text-sm text-slate-500">Asset value: ${device.value.toLocaleString()}</div>
-          </div>
-          {suggestAction(device) && (
-            <div className="bg-blue-50 border border-blue-200 rounded p-3">
-              <div className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-1">Suggested Action</div>
-              <div className="text-sm text-blue-900">{suggestAction(device)}</div>
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div>
-              <div className="text-xs text-slate-500">Assigned Zone</div>
-              <div className="font-medium text-slate-900">{device.assignedZone}</div>
-              <div className="text-xs text-slate-400">{device.location} · {device.floor}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500">Detected Zone</div>
-              <div className={`font-medium ${mismatch ? 'text-red-600' : 'text-slate-900'}`}>{device.detectedZone || 'No signal'}</div>
-              {mismatch && <div className="text-xs text-red-500">Out of zone</div>}
-            </div>
-            <div>
-              <div className="text-xs text-slate-500">Last Seen</div>
-              <div className={`font-medium ${lastSeenColor(device.minutesAgo, device.status)}`}>{formatLastSeen(device.minutesAgo)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-500">Tag Battery</div>
-              <div className="font-medium text-slate-900">{device.battery !== null ? `${device.battery}%` : '—'}</div>
-            </div>
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Movement Timeline (24h)</div>
-            <div className="space-y-2">
-              {timeline.map((t, i) => (
-                <div key={i} className="flex items-center gap-3 text-sm">
-                  <div className={`w-2 h-2 rounded-full ${t.current ? 'bg-blue-500 ring-4 ring-blue-100' : 'bg-slate-300'}`} />
-                  <div className="text-xs text-slate-400 w-16">{t.time}</div>
-                  <div className={t.current ? 'font-medium text-slate-900' : 'text-slate-600'}>{t.zone}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2 pt-2">
-            <button className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700">Mark Recovered</button>
-            <button className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded hover:bg-slate-50">Notify Owner</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const timeline = [{
+    time: 'Now',
+    zone: device.detectedZone || 'No signal',
+    current: true
+  }, {
+    time: '2h ago',
+    zone: device.assignedZone
+  }, {
+    time: '5h ago',
+    zone: device.assignedZone
+  }, {
+    time: '1d ago',
+    zone: device.assignedZone
+  }, {
+    time: '2d ago',
+    zone: device.assignedZone
+  }];
+  return /*#__PURE__*/React.createElement("div", {
+    className: "fixed inset-0 z-50 flex"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-1 bg-black/30",
+    onClick: onClose
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "w-[440px] bg-white border-l border-slate-200 shadow-xl overflow-y-auto"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500 uppercase tracking-wide"
+  }, "Device Detail"), /*#__PURE__*/React.createElement("div", {
+    className: "font-mono font-semibold text-slate-900"
+  }, device.id)), /*#__PURE__*/React.createElement("button", {
+    onClick: onClose,
+    className: "p-1.5 hover:bg-slate-100 rounded text-slate-500"
+  }, /*#__PURE__*/React.createElement(Icon, {
+    name: "x",
+    size: 16
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "p-5 space-y-5"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement(StatusBadge, {
+    status: device.status
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "mt-3 text-lg font-semibold text-slate-900"
+  }, device.model), /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-slate-500"
+  }, "Asset value: $", device.value.toLocaleString())), suggestAction(device) && /*#__PURE__*/React.createElement("div", {
+    className: "bg-blue-50 border border-blue-200 rounded p-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-semibold text-blue-900 uppercase tracking-wide mb-1"
+  }, "Suggested Action"), /*#__PURE__*/React.createElement("div", {
+    className: "text-sm text-blue-900"
+  }, suggestAction(device))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-3 text-sm"
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Assigned Zone"), /*#__PURE__*/React.createElement("div", {
+    className: "font-medium text-slate-900"
+  }, device.assignedZone), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-400"
+  }, device.location, " \xB7 ", device.floor)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Detected Zone"), /*#__PURE__*/React.createElement("div", {
+    className: `font-medium ${mismatch ? 'text-red-600' : 'text-slate-900'}`
+  }, device.detectedZone || 'No signal'), mismatch && /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-red-500"
+  }, "Out of zone")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Last Seen"), /*#__PURE__*/React.createElement("div", {
+    className: `font-medium ${lastSeenColor(device.minutesAgo, device.status)}`
+  }, formatLastSeen(device.minutesAgo))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-500"
+  }, "Tag Battery"), /*#__PURE__*/React.createElement("div", {
+    className: "font-medium text-slate-900"
+  }, device.battery !== null ? `${device.battery}%` : '—'))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2"
+  }, "Movement Timeline (24h)"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-2"
+  }, timeline.map((t, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "flex items-center gap-3 text-sm"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: `w-2 h-2 rounded-full ${t.current ? 'bg-blue-500 ring-4 ring-blue-100' : 'bg-slate-300'}`
+  }), /*#__PURE__*/React.createElement("div", {
+    className: "text-xs text-slate-400 w-16"
+  }, t.time), /*#__PURE__*/React.createElement("div", {
+    className: t.current ? 'font-medium text-slate-900' : 'text-slate-600'
+  }, t.zone))))), /*#__PURE__*/React.createElement("div", {
+    className: "flex gap-2 pt-2"
+  }, /*#__PURE__*/React.createElement("button", {
+    className: "flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700"
+  }, "Mark Recovered"), /*#__PURE__*/React.createElement("button", {
+    className: "flex-1 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded hover:bg-slate-50"
+  }, "Notify Owner")))));
 }
 
 // =========================================================================
@@ -816,9 +1207,12 @@ function DeviceDrawer({ device, onClose }) {
 
 function App() {
   const [page, setPage] = useState('dashboard');
-  const [filters, setFilters] = useState({ location: 'All Locations', floor: 'All Floors', zone: 'All Zones' });
+  const [filters, setFilters] = useState({
+    location: 'All Locations',
+    floor: 'All Floors',
+    zone: 'All Zones'
+  });
   const [selectedDevice, setSelectedDevice] = useState(null);
-
   const filteredDevices = useMemo(() => {
     return DEVICES.filter(d => {
       if (filters.location !== 'All Locations' && d.location !== filters.location) return false;
@@ -827,25 +1221,33 @@ function App() {
       return true;
     });
   }, [filters]);
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <Header />
-      <div className="flex">
-        <Sidebar currentPage={page} setPage={setPage} />
-        <main className="flex-1 min-w-0">
-          <FilterBar filters={filters} setFilters={setFilters} />
-          {page === 'dashboard' && <Dashboard devices={filteredDevices} />}
-          {page === 'inventory' && <Inventory devices={filteredDevices} onSelectDevice={setSelectedDevice} />}
-          {page === 'lossPrevention' && <LossPrevention devices={filteredDevices} onSelectDevice={setSelectedDevice} />}
-        </main>
-      </div>
-      <DeviceDrawer device={selectedDevice} onClose={() => setSelectedDevice(null)} />
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    className: "min-h-screen bg-slate-50"
+  }, /*#__PURE__*/React.createElement(Header, null), /*#__PURE__*/React.createElement("div", {
+    className: "flex"
+  }, /*#__PURE__*/React.createElement(Sidebar, {
+    currentPage: page,
+    setPage: setPage
+  }), /*#__PURE__*/React.createElement("main", {
+    className: "flex-1 min-w-0"
+  }, /*#__PURE__*/React.createElement(FilterBar, {
+    filters: filters,
+    setFilters: setFilters
+  }), page === 'dashboard' && /*#__PURE__*/React.createElement(Dashboard, {
+    devices: filteredDevices
+  }), page === 'inventory' && /*#__PURE__*/React.createElement(Inventory, {
+    devices: filteredDevices,
+    onSelectDevice: setSelectedDevice
+  }), page === 'lossPrevention' && /*#__PURE__*/React.createElement(LossPrevention, {
+    devices: filteredDevices,
+    onSelectDevice: setSelectedDevice
+  }))), /*#__PURE__*/React.createElement(DeviceDrawer, {
+    device: selectedDevice,
+    onClose: () => setSelectedDevice(null)
+  }));
 }
+ReactDOM.createRoot(document.getElementById('root')).render(/*#__PURE__*/React.createElement(App, null));
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
 </html>
