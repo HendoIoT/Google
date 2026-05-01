@@ -1,1 +1,846 @@
-<html><body>test</body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Google Workplace Asset Tracking — Wireframe</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; margin: 0; }
+  .lucide { display: inline-block; vertical-align: middle; }
+</style>
+</head>
+<body class="bg-slate-50">
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useMemo } = React;
+const {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend
+} = Recharts;
+
+// Lucide icon helper - creates an SVG icon component from lucide-static names
+function Icon({ name, className = "", size = 16 }) {
+  const iconData = lucide.icons[name] || lucide.icons[toPascalCase(name)];
+  if (!iconData) return null;
+  // lucide.icons returns array format: [tag, attrs, children]
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`lucide ${className}`}
+      dangerouslySetInnerHTML={{ __html: renderLucideChildren(iconData) }}
+    />
+  );
+}
+
+function toPascalCase(str) {
+  return str.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+}
+
+function renderLucideChildren(iconData) {
+  // iconData is typically [["tag", {attrs}], ...] or {default: [...]}
+  const children = Array.isArray(iconData) ? iconData : (iconData.default || []);
+  return children.map(child => {
+    if (!Array.isArray(child)) return '';
+    const [tag, attrs] = child;
+    const attrStr = Object.entries(attrs || {}).map(([k, v]) => `${k}="${v}"`).join(' ');
+    return `<${tag} ${attrStr} />`;
+  }).join('');
+}
+
+// =========================================================================
+// MOCK DATA
+// =========================================================================
+
+const STRUCTURE = {
+  'Mountain View HQ': {
+    'Floor 1': ['North Wing', 'South Wing', 'East Wing', 'Lobby', 'Conference A'],
+    'Floor 2': ['Engineering Bay', 'Design Studio', 'Quiet Zone', 'Conference B'],
+    'Floor 3': ['Exec Suite', 'Boardroom', 'Innovation Lab']
+  },
+  'Sunnyvale Campus': {
+    'Floor 1': ['Reception', 'Cafeteria', 'Open Workspace', 'Phone Booths'],
+    'Floor 2': ['Product Pod', 'Marketing Pod', 'Conference C']
+  },
+  'Kirkland Office': {
+    'Floor 1': ['Main Floor', 'Lab', 'Conference D'],
+    'Floor 2': ['Hot Desks', 'Quiet Lounge']
+  }
+};
+
+const MONITOR_MODELS = [
+  'Dell U2723QE', 'Dell U3223QE', 'LG 27UP850', 'ASUS ProArt PA279',
+  'Samsung S95B', 'BenQ PD2725U', 'Apple Studio Display'
+];
+
+function seeded(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function generateDevices() {
+  const rng = seeded(42);
+  const devices = [];
+  let id = 1000;
+  Object.entries(STRUCTURE).forEach(([location, floors]) => {
+    Object.entries(floors).forEach(([floor, zones]) => {
+      zones.forEach(zone => {
+        const count = 3 + Math.floor(rng() * 5);
+        for (let i = 0; i < count; i++) {
+          id++;
+          const r = rng();
+          let status, detectedZone, minutesAgo;
+          if (r < 0.72) {
+            status = 'healthy';
+            detectedZone = zone;
+            minutesAgo = Math.floor(rng() * 28);
+          } else if (r < 0.82) {
+            status = 'misplaced';
+            const allZonesInLocation = Object.values(floors).flat();
+            const otherZones = allZonesInLocation.filter(z => z !== zone);
+            detectedZone = otherZones[Math.floor(rng() * otherZones.length)];
+            minutesAgo = Math.floor(rng() * 28);
+          } else if (r < 0.92) {
+            status = 'stale';
+            detectedZone = zone;
+            minutesAgo = 30 + Math.floor(rng() * 600);
+          } else if (r < 0.98) {
+            status = 'missing';
+            detectedZone = zone;
+            minutesAgo = 24 * 60 + Math.floor(rng() * 96 * 60);
+          } else {
+            status = 'offline';
+            detectedZone = null;
+            minutesAgo = null;
+          }
+          const locCode = location.split(' ')[0].slice(0, 3).toUpperCase();
+          devices.push({
+            id: `MON-${locCode}-${id}`,
+            model: MONITOR_MODELS[Math.floor(rng() * MONITOR_MODELS.length)],
+            location, floor, assignedZone: zone, detectedZone, minutesAgo,
+            battery: status === 'offline' ? null : 15 + Math.floor(rng() * 85),
+            status, value: 650
+          });
+        }
+      });
+    });
+  });
+  return devices;
+}
+
+const DEVICES = generateDevices();
+
+// =========================================================================
+// HELPERS
+// =========================================================================
+
+const STATUS_META = {
+  healthy:    { label: 'Healthy',    dot: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  misplaced:  { label: 'Misplaced',  dot: '#f59e0b', bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200' },
+  stale:      { label: 'Stale',      dot: '#f97316', bg: 'bg-orange-50',  text: 'text-orange-700',  border: 'border-orange-200' },
+  missing:    { label: 'Missing',    dot: '#ef4444', bg: 'bg-red-50',     text: 'text-red-700',     border: 'border-red-200' },
+  offline:    { label: 'Offline',    dot: '#94a3b8', bg: 'bg-slate-100',  text: 'text-slate-600',   border: 'border-slate-200' }
+};
+
+function formatLastSeen(minutes) {
+  if (minutes === null || minutes === undefined) return 'Never';
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${Math.floor(minutes)}m ago`;
+  if (minutes < 24 * 60) return `${Math.floor(minutes / 60)}h ago`;
+  return `${Math.floor(minutes / (24 * 60))}d ago`;
+}
+
+function lastSeenColor(minutes, status) {
+  if (status === 'offline') return 'text-slate-400';
+  if (minutes === null) return 'text-slate-400';
+  if (minutes > 24 * 60) return 'text-red-600 font-semibold';
+  if (minutes > 30) return 'text-orange-600 font-medium';
+  return 'text-slate-600';
+}
+
+function suggestAction(d) {
+  if (d.status === 'misplaced') return `Found in ${d.detectedZone} (${d.floor}). Relocate to ${d.assignedZone}.`;
+  if (d.status === 'stale') return `Last ping in ${d.assignedZone} ${formatLastSeen(d.minutesAgo)}. Walk-by verify.`;
+  if (d.status === 'missing') return `Escalate — no signal for ${formatLastSeen(d.minutesAgo)}. Notify zone owner.`;
+  if (d.status === 'offline') return 'Tag never reported. Check tag pairing or battery seating.';
+  return null;
+}
+
+// =========================================================================
+// SHARED COMPONENTS
+// =========================================================================
+
+function StatusBadge({ status }) {
+  const m = STATUS_META[status];
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${m.bg} ${m.text} ${m.border}`}>
+      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: m.dot }} />
+      {m.label}
+    </span>
+  );
+}
+
+function KPICard({ label, value, sublabel, accent = 'slate', trend, big = false }) {
+  const accentMap = {
+    slate: 'text-slate-900', emerald: 'text-emerald-600', amber: 'text-amber-600',
+    orange: 'text-orange-600', red: 'text-red-600', blue: 'text-blue-600'
+  };
+  return (
+    <div className="bg-white border border-slate-200 rounded-lg p-4 flex flex-col justify-between min-h-[110px]">
+      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</div>
+      <div className="flex items-baseline gap-2 mt-2">
+        <div className={`${big ? 'text-4xl' : 'text-2xl'} font-bold ${accentMap[accent]}`}>{value}</div>
+        {trend !== undefined && (
+          <div className={`flex items-center text-xs font-medium ${trend >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            <Icon name={trend >= 0 ? 'trending-up' : 'trending-down'} size={12} />
+            {Math.abs(trend)}%
+          </div>
+        )}
+      </div>
+      {sublabel && <div className="text-xs text-slate-500 mt-1">{sublabel}</div>}
+    </div>
+  );
+}
+
+function Header() {
+  return (
+    <header className="bg-[#1a73e8] text-white">
+      <div className="flex items-center justify-between px-6 py-3">
+        <div className="flex items-center gap-3">
+          <div className="text-2xl font-semibold tracking-tight">Google</div>
+          <div className="text-blue-200 text-sm">|</div>
+          <div className="text-sm text-blue-100">Workplace Asset Tracking</div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="px-4 py-1.5 border border-white/30 rounded-md flex items-center gap-2">
+            <Icon name="radio" size={16} />
+            <span className="font-bold tracking-wider text-sm">READY TRACK</span>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-xs text-blue-200 uppercase tracking-wide">Powered by</div>
+          <div className="text-sm font-semibold">READY WIRELESS</div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function Sidebar({ currentPage, setPage }) {
+  const items = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+    { id: 'inventory', label: 'Inventory', icon: 'package' },
+    { id: 'lossPrevention', label: 'Loss Prevention', icon: 'shield-alert' }
+  ];
+  const utility = [
+    { id: 'alerts', label: 'Alerts', icon: 'bell', badge: 3 },
+    { id: 'admin', label: 'Admin', icon: 'settings' }
+  ];
+  return (
+    <aside className="w-52 bg-white border-r border-slate-200 min-h-[calc(100vh-56px)] py-4">
+      <div className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tracking</div>
+      {items.map(item => {
+        const active = currentPage === item.id;
+        return (
+          <button key={item.id} onClick={() => setPage(item.id)}
+            className={`w-full flex items-center gap-3 px-4 py-2 text-sm transition-colors ${
+              active ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600 font-medium' : 'text-slate-600 hover:bg-slate-50'
+            }`}>
+            <Icon name={item.icon} size={16} />
+            {item.label}
+          </button>
+        );
+      })}
+      <div className="px-3 text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 mt-6">System</div>
+      {utility.map(item => (
+        <button key={item.id} className="w-full flex items-center justify-between px-4 py-2 text-sm text-slate-500 hover:bg-slate-50">
+          <span className="flex items-center gap-3">
+            <Icon name={item.icon} size={16} />
+            {item.label}
+          </span>
+          {item.badge && <span className="text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5 font-medium">{item.badge}</span>}
+        </button>
+      ))}
+    </aside>
+  );
+}
+
+function FilterBar({ filters, setFilters }) {
+  const locations = ['All Locations', ...Object.keys(STRUCTURE)];
+  const floors = filters.location !== 'All Locations'
+    ? ['All Floors', ...Object.keys(STRUCTURE[filters.location] || {})]
+    : ['All Floors'];
+  const zones = filters.location !== 'All Locations' && filters.floor !== 'All Floors'
+    ? ['All Zones', ...(STRUCTURE[filters.location]?.[filters.floor] || [])]
+    : ['All Zones'];
+
+  return (
+    <div className="bg-white border-b border-slate-200 px-6 py-3 flex items-center gap-3">
+      <Icon name="filter" size={16} className="text-slate-400" />
+      <span className="text-xs text-slate-500 font-medium uppercase tracking-wide mr-1">Scope:</span>
+      <select value={filters.location}
+        onChange={e => setFilters({ location: e.target.value, floor: 'All Floors', zone: 'All Zones' })}
+        className="border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500">
+        {locations.map(l => <option key={l}>{l}</option>)}
+      </select>
+      <Icon name="chevron-right" size={12} className="text-slate-300" />
+      <select value={filters.floor}
+        onChange={e => setFilters({ ...filters, floor: e.target.value, zone: 'All Zones' })}
+        disabled={filters.location === 'All Locations'}
+        className="border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400">
+        {floors.map(f => <option key={f}>{f}</option>)}
+      </select>
+      <Icon name="chevron-right" size={12} className="text-slate-300" />
+      <select value={filters.zone}
+        onChange={e => setFilters({ ...filters, zone: e.target.value })}
+        disabled={filters.floor === 'All Floors'}
+        className="border border-slate-300 rounded px-3 py-1.5 text-sm bg-white hover:border-slate-400 focus:outline-none focus:border-blue-500 disabled:bg-slate-50 disabled:text-slate-400">
+        {zones.map(z => <option key={z}>{z}</option>)}
+      </select>
+      <div className="ml-auto flex items-center gap-2 text-xs text-slate-500">
+        <Icon name="refresh-cw" size={12} />
+        <span>Last refresh: May 1, 2026 2:20 PM PT</span>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
+// PAGES
+// =========================================================================
+
+function Dashboard({ devices }) {
+  const total = devices.length;
+  const healthy = devices.filter(d => d.status === 'healthy').length;
+  const misplaced = devices.filter(d => d.status === 'misplaced').length;
+  const stale = devices.filter(d => d.status === 'stale').length;
+  const missing = devices.filter(d => d.status === 'missing').length;
+  const inAssignedZone = devices.filter(d => d.assignedZone === d.detectedZone).length;
+  const healthPct = total ? Math.round((healthy / total) * 100) : 0;
+  const inZonePct = total ? Math.round((inAssignedZone / total) * 100) : 0;
+
+  const healthTrend = [
+    { date: 'Apr 25', health: 88 }, { date: 'Apr 26', health: 90 },
+    { date: 'Apr 27', health: 87 }, { date: 'Apr 28', health: 91 },
+    { date: 'Apr 29', health: 89 }, { date: 'Apr 30', health: 86 },
+    { date: 'May 1', health: healthPct }
+  ];
+
+  const byFloor = useMemo(() => {
+    const map = {};
+    devices.forEach(d => {
+      const key = `${d.location.split(' ')[0]} ${d.floor.replace('Floor ', 'F')}`;
+      if (!map[key]) map[key] = { floor: key, healthy: 0, misplaced: 0, stale: 0, missing: 0 };
+      if (d.status !== 'offline') map[key][d.status]++;
+    });
+    return Object.values(map);
+  }, [devices]);
+
+  const needsAttention = devices
+    .filter(d => d.status !== 'healthy')
+    .sort((a, b) => {
+      const order = { missing: 0, stale: 1, misplaced: 2, offline: 3 };
+      if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+      return (b.minutesAgo || 0) - (a.minutesAgo || 0);
+    })
+    .slice(0, 6);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-end justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">Real-time visibility across {total} tracked monitors</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-6 gap-4">
+        <div className="col-span-2 bg-white border border-slate-200 rounded-lg p-5 flex flex-col justify-between">
+          <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Inventory Health</div>
+          <div className="flex items-baseline gap-3 mt-2">
+            <div className="text-5xl font-bold text-emerald-600">{healthPct}%</div>
+            <div className="text-sm text-emerald-600 flex items-center gap-1">
+              <Icon name="trending-up" size={12} /> 2.1% vs last week
+            </div>
+          </div>
+          <div className="text-xs text-slate-500 mt-2">{healthy} of {total} seen &lt;30min in assigned zone</div>
+        </div>
+        <KPICard label="Total Tracked" value={total.toLocaleString()} sublabel="across 3 buildings" />
+        <KPICard label="In Assigned Zone" value={`${inZonePct}%`} sublabel={`${inAssignedZone} devices`} accent="blue" />
+        <KPICard label="Misplaced" value={misplaced} sublabel="seen, wrong zone" accent="amber" />
+        <KPICard label="Stale" value={stale} sublabel="30min – 24hr" accent="orange" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <KPICard label="Missing" value={missing} sublabel="No signal >24hr" accent="red" />
+        <KPICard label="Total $ at Risk" value={`$${((missing + stale) * 650).toLocaleString()}`} sublabel="At-risk asset value" accent="red" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white border border-slate-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-slate-900 text-sm">Inventory Health — Last 7 Days</h3>
+            <div className="flex gap-1 text-xs">
+              <button className="px-2 py-1 bg-blue-50 text-blue-700 rounded font-medium">7d</button>
+              <button className="px-2 py-1 text-slate-500 hover:bg-slate-50 rounded">30d</button>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={healthTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} />
+              <YAxis domain={[70, 100]} tick={{ fontSize: 11, fill: '#64748b' }} unit="%" />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+              <Line type="monotone" dataKey="health" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-semibold text-slate-900 text-sm">Status Breakdown by Floor</h3>
+            <button className="text-xs text-blue-600 hover:underline">View detail →</button>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={byFloor} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="floor" tick={{ fontSize: 10, fill: '#64748b' }} />
+              <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 6 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Bar dataKey="healthy" stackId="a" fill="#10b981" />
+              <Bar dataKey="misplaced" stackId="a" fill="#f59e0b" />
+              <Bar dataKey="stale" stackId="a" fill="#f97316" />
+              <Bar dataKey="missing" stackId="a" fill="#ef4444" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200">
+          <div className="flex items-center gap-2">
+            <Icon name="alert-circle" size={16} className="text-amber-600" />
+            <h3 className="font-semibold text-slate-900 text-sm">Needs Attention</h3>
+            <span className="text-xs text-slate-500">Top {needsAttention.length} of {misplaced + stale + missing} flagged devices</span>
+          </div>
+          <button className="text-xs text-blue-600 hover:underline">View all in Loss Prevention →</button>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {needsAttention.map(d => (
+            <div key={d.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50">
+              <StatusBadge status={d.status} />
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-slate-900">{d.id} <span className="text-slate-400 font-normal">— {d.model}</span></div>
+                <div className="text-xs text-slate-500 mt-0.5">{suggestAction(d)}</div>
+              </div>
+              <div className="text-right">
+                <div className={`text-xs ${lastSeenColor(d.minutesAgo, d.status)}`}>Last seen {formatLastSeen(d.minutesAgo)}</div>
+                <div className="text-xs text-slate-400">{d.location.split(' ')[0]} / {d.floor} / {d.detectedZone || '—'}</div>
+              </div>
+              <Icon name="chevron-right" size={16} className="text-slate-300" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Inventory({ devices, onSelectDevice }) {
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  const filtered = devices.filter(d => {
+    if (statusFilter === 'inZone' && d.assignedZone !== d.detectedZone) return false;
+    if (statusFilter === 'outOfZone' && d.assignedZone === d.detectedZone) return false;
+    if (statusFilter !== 'all' && statusFilter !== 'inZone' && statusFilter !== 'outOfZone' && d.status !== statusFilter) return false;
+    if (search && !d.id.toLowerCase().includes(search.toLowerCase()) && !d.model.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const total = devices.length;
+  const healthy = devices.filter(d => d.status === 'healthy').length;
+  const seen = devices.filter(d => d.minutesAgo !== null && d.minutesAgo < 30).length;
+  const notSeen = total - seen;
+  const inZone = devices.filter(d => d.assignedZone === d.detectedZone).length;
+
+  const chips = [
+    { id: 'all', label: 'All', count: devices.length },
+    { id: 'healthy', label: 'Healthy', count: devices.filter(d => d.status === 'healthy').length },
+    { id: 'misplaced', label: 'Misplaced', count: devices.filter(d => d.status === 'misplaced').length },
+    { id: 'stale', label: 'Stale', count: devices.filter(d => d.status === 'stale').length },
+    { id: 'missing', label: 'Missing', count: devices.filter(d => d.status === 'missing').length },
+    { id: 'outOfZone', label: 'Not in Assigned Zone', count: devices.filter(d => d.assignedZone !== d.detectedZone).length }
+  ];
+
+  return (
+    <div className="p-6 space-y-5">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Inventory</h1>
+        <p className="text-sm text-slate-500 mt-1">Searchable, filterable view of every tracked monitor.</p>
+      </div>
+
+      <div className="grid grid-cols-5 gap-4">
+        <KPICard label="Total Devices" value={total.toLocaleString()} />
+        <KPICard label="Healthy" value={healthy} sublabel={total ? `${Math.round(healthy/total*100)}%` : '—'} accent="emerald" />
+        <KPICard label="Seen <30 min" value={seen} accent="emerald" />
+        <KPICard label="Not Seen <30 min" value={notSeen} accent="amber" />
+        <KPICard label="In Assigned Zone" value={total ? `${Math.round(inZone/total*100)}%` : '—'} sublabel={`${inZone} of ${total}`} accent="blue" />
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+        <div className="flex gap-3">
+          <div className="flex-1 relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <Icon name="search" size={16} />
+            </span>
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search by Asset ID, model, or zone..."
+              className="w-full pl-10 pr-3 py-2 border border-slate-300 rounded-md text-sm focus:outline-none focus:border-blue-500" />
+          </div>
+          <button className="px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-1.5">
+            <Icon name="filter" size={16} /> Advanced
+          </button>
+          <button className="px-3 py-2 border border-slate-300 rounded-md text-sm text-slate-700 hover:bg-slate-50">Export CSV</button>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {chips.map(c => (
+            <button key={c.id} onClick={() => setStatusFilter(c.id)}
+              className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                statusFilter === c.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+              }`}>
+              {c.label} <span className={statusFilter === c.id ? 'text-blue-100' : 'text-slate-400'}>· {c.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <div className="px-4 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+          <div className="text-xs text-slate-600">
+            Showing <span className="font-semibold text-slate-900">{filtered.length}</span> of {devices.length} devices
+          </div>
+          <div className="text-xs text-slate-500">Click any row for details</div>
+        </div>
+        <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200 sticky top-0">
+              <tr className="text-left text-xs text-slate-500 uppercase tracking-wide">
+                <th className="px-4 py-2.5 font-semibold">Asset ID</th>
+                <th className="px-4 py-2.5 font-semibold">Model</th>
+                <th className="px-4 py-2.5 font-semibold">Status</th>
+                <th className="px-4 py-2.5 font-semibold">Assigned Zone</th>
+                <th className="px-4 py-2.5 font-semibold">Detected Zone</th>
+                <th className="px-4 py-2.5 font-semibold">Last Seen</th>
+                <th className="px-4 py-2.5 font-semibold">Battery</th>
+                <th className="px-4 py-2.5"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {filtered.slice(0, 200).map(d => {
+                const mismatch = d.assignedZone !== d.detectedZone;
+                const rowTint =
+                  d.status === 'missing' ? 'bg-red-50/50 hover:bg-red-50' :
+                  d.status === 'stale' ? 'bg-orange-50/40 hover:bg-orange-50' :
+                  d.status === 'misplaced' ? 'bg-amber-50/40 hover:bg-amber-50' :
+                  'hover:bg-slate-50';
+                return (
+                  <tr key={d.id} className={`${rowTint} cursor-pointer`} onClick={() => onSelectDevice(d)}>
+                    <td className="px-4 py-2.5 font-mono text-xs font-medium text-slate-900">{d.id}</td>
+                    <td className="px-4 py-2.5 text-slate-700">{d.model}</td>
+                    <td className="px-4 py-2.5"><StatusBadge status={d.status} /></td>
+                    <td className="px-4 py-2.5 text-slate-700">
+                      <div>{d.assignedZone}</div>
+                      <div className="text-xs text-slate-400">{d.location.split(' ')[0]} · {d.floor}</div>
+                    </td>
+                    <td className={`px-4 py-2.5 ${mismatch ? 'text-red-600 font-semibold' : 'text-slate-700'}`}>
+                      {d.detectedZone || <span className="text-slate-400 italic">No signal</span>}
+                    </td>
+                    <td className={`px-4 py-2.5 ${lastSeenColor(d.minutesAgo, d.status)}`}>{formatLastSeen(d.minutesAgo)}</td>
+                    <td className="px-4 py-2.5">
+                      {d.battery !== null ? (
+                        <div className="flex items-center gap-1.5">
+                          <span className={d.battery < 20 ? 'text-red-500' : d.battery < 40 ? 'text-amber-500' : 'text-slate-400'}>
+                            <Icon name="battery" size={14} />
+                          </span>
+                          <span className={`text-xs ${d.battery < 20 ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>{d.battery}%</span>
+                        </div>
+                      ) : <span className="text-slate-400 text-xs">—</span>}
+                    </td>
+                    <td className="px-4 py-2.5"><Icon name="chevron-right" size={16} className="text-slate-300" /></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LossPrevention({ devices, onSelectDevice }) {
+  const misplaced = devices.filter(d => d.status === 'misplaced');
+  const stale = devices.filter(d => d.status === 'stale');
+  const missing = devices.filter(d => d.status === 'missing');
+  const offline = devices.filter(d => d.status === 'offline');
+  const atRisk = misplaced.length + stale.length + missing.length + offline.length;
+  const valueAtRisk = atRisk * 650;
+  const recoveryRate = 87;
+  const avgTimeToRecovery = '4.2h';
+
+  const recoverable = [...misplaced, ...stale].sort((a, b) => (a.minutesAgo || 0) - (b.minutesAgo || 0));
+  const investigate = [...missing, ...offline];
+
+  const actionLog = [
+    { time: '1h ago',  user: 'kchen@google.com',     action: 'Recovered',  device: 'MON-MOU-1042', detail: 'Found in Conference A — relocated to Engineering Bay' },
+    { time: '3h ago',  user: 'jpark@google.com',     action: 'Escalated',  device: 'MON-SUN-1188', detail: 'Notified facilities — missing 28h' },
+    { time: '6h ago',  user: 'system',                action: 'Auto-flag', device: 'MON-MOU-1014', detail: 'Crossed 24h threshold — marked Missing' },
+    { time: '1d ago',  user: 'arao@google.com',      action: 'Recovered',  device: 'MON-KIR-1066', detail: 'Tag reseated — back online' },
+    { time: '2d ago',  user: 'mdiaz@google.com',     action: 'Recovered',  device: 'MON-MOU-1107', detail: 'Found in storage — re-shelved to Quiet Zone' }
+  ];
+
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">Loss Prevention</h1>
+        <p className="text-sm text-slate-500 mt-1">Prioritized recovery workflow for at-risk and missing inventory.</p>
+      </div>
+
+      <div className="grid grid-cols-4 gap-4">
+        <KPICard label="Devices at Risk" value={atRisk} sublabel="Misplaced + Stale + Missing" accent="red" big />
+        <KPICard label="Asset Value at Risk" value={`$${valueAtRisk.toLocaleString()}`} accent="red" big />
+        <KPICard label="Recovery Rate (30d)" value={`${recoveryRate}%`} sublabel="Found within SLA" accent="emerald" trend={5} />
+        <KPICard label="Avg Time to Recovery" value={avgTimeToRecovery} sublabel="From flag to recovery" accent="blue" trend={-12} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 bg-amber-50">
+            <div className="flex items-center gap-2">
+              <Icon name="check-circle-2" size={16} className="text-amber-600" />
+              <h3 className="font-semibold text-slate-900 text-sm">Likely Recoverable</h3>
+              <span className="ml-auto text-xs text-slate-500">{recoverable.length} devices · still pinging</span>
+            </div>
+            <div className="text-xs text-slate-600 mt-1">Misplaced or recently stale — actionable now.</div>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
+            {recoverable.slice(0, 12).map(d => (
+              <div key={d.id} className="p-3 hover:bg-slate-50 cursor-pointer" onClick={() => onSelectDevice(d)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={d.status} />
+                      <span className="text-xs font-mono font-semibold text-slate-900">{d.id}</span>
+                    </div>
+                    <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">{suggestAction(d)}</div>
+                    <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5">
+                      <span className="flex items-center gap-1"><Icon name="map-pin" size={12} />{d.location.split(' ')[0]} / {d.floor}</span>
+                      <span className="flex items-center gap-1"><Icon name="clock" size={12} />{formatLastSeen(d.minutesAgo)}</span>
+                    </div>
+                  </div>
+                  <button className="text-xs px-2.5 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap">Take action</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-200 bg-red-50">
+            <div className="flex items-center gap-2">
+              <Icon name="shield-alert" size={16} className="text-red-600" />
+              <h3 className="font-semibold text-slate-900 text-sm">Investigation Needed</h3>
+              <span className="ml-auto text-xs text-slate-500">{investigate.length} devices · escalation track</span>
+            </div>
+            <div className="text-xs text-slate-600 mt-1">Missing &gt;24hr or never reported — requires owner outreach.</div>
+          </div>
+          <div className="divide-y divide-slate-100 max-h-[480px] overflow-y-auto">
+            {investigate.length === 0 ? (
+              <div className="p-6 text-center text-sm text-slate-400">
+                <span className="text-emerald-300 inline-block mb-2"><Icon name="check-circle-2" size={32} /></span>
+                <div>No devices currently require investigation.</div>
+              </div>
+            ) : investigate.map(d => (
+              <div key={d.id} className="p-3 hover:bg-slate-50 cursor-pointer" onClick={() => onSelectDevice(d)}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <StatusBadge status={d.status} />
+                      <span className="text-xs font-mono font-semibold text-slate-900">{d.id}</span>
+                    </div>
+                    <div className="text-xs text-slate-600 mt-1.5 leading-relaxed">{suggestAction(d)}</div>
+                    <div className="flex items-center gap-3 text-xs text-slate-400 mt-1.5">
+                      <span className="flex items-center gap-1"><Icon name="map-pin" size={12} />{d.location.split(' ')[0]} / {d.floor} / {d.assignedZone}</span>
+                      <span className="flex items-center gap-1 text-red-600 font-medium"><Icon name="clock" size={12} />{formatLastSeen(d.minutesAgo)}</span>
+                    </div>
+                  </div>
+                  <button className="text-xs px-2.5 py-1 bg-red-600 text-white rounded hover:bg-red-700 whitespace-nowrap">Escalate</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-lg">
+        <div className="px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon name="activity" size={16} className="text-slate-500" />
+            <h3 className="font-semibold text-slate-900 text-sm">Recent Recovery Activity</h3>
+          </div>
+          <button className="text-xs text-blue-600 hover:underline">View full audit log →</button>
+        </div>
+        <div className="divide-y divide-slate-100">
+          {actionLog.map((a, i) => (
+            <div key={i} className="px-4 py-2.5 flex items-center gap-4 text-sm">
+              <div className="text-xs text-slate-400 w-16 shrink-0">{a.time}</div>
+              <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                a.action === 'Recovered' ? 'bg-emerald-50 text-emerald-700' :
+                a.action === 'Escalated' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'
+              }`}>{a.action}</div>
+              <div className="font-mono text-xs text-slate-700">{a.device}</div>
+              <div className="text-slate-600 text-xs flex-1">{a.detail}</div>
+              <div className="text-xs text-slate-400">{a.user}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeviceDrawer({ device, onClose }) {
+  if (!device) return null;
+  const mismatch = device.assignedZone !== device.detectedZone;
+  const timeline = [
+    { time: 'Now', zone: device.detectedZone || 'No signal', current: true },
+    { time: '2h ago', zone: device.assignedZone },
+    { time: '5h ago', zone: device.assignedZone },
+    { time: '1d ago', zone: device.assignedZone },
+    { time: '2d ago', zone: device.assignedZone }
+  ];
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="flex-1 bg-black/30" onClick={onClose} />
+      <div className="w-[440px] bg-white border-l border-slate-200 shadow-xl overflow-y-auto">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between sticky top-0 bg-white">
+          <div>
+            <div className="text-xs text-slate-500 uppercase tracking-wide">Device Detail</div>
+            <div className="font-mono font-semibold text-slate-900">{device.id}</div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-slate-100 rounded text-slate-500">
+            <Icon name="x" size={16} />
+          </button>
+        </div>
+        <div className="p-5 space-y-5">
+          <div>
+            <StatusBadge status={device.status} />
+            <div className="mt-3 text-lg font-semibold text-slate-900">{device.model}</div>
+            <div className="text-sm text-slate-500">Asset value: ${device.value.toLocaleString()}</div>
+          </div>
+          {suggestAction(device) && (
+            <div className="bg-blue-50 border border-blue-200 rounded p-3">
+              <div className="text-xs font-semibold text-blue-900 uppercase tracking-wide mb-1">Suggested Action</div>
+              <div className="text-sm text-blue-900">{suggestAction(device)}</div>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <div className="text-xs text-slate-500">Assigned Zone</div>
+              <div className="font-medium text-slate-900">{device.assignedZone}</div>
+              <div className="text-xs text-slate-400">{device.location} · {device.floor}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">Detected Zone</div>
+              <div className={`font-medium ${mismatch ? 'text-red-600' : 'text-slate-900'}`}>{device.detectedZone || 'No signal'}</div>
+              {mismatch && <div className="text-xs text-red-500">Out of zone</div>}
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">Last Seen</div>
+              <div className={`font-medium ${lastSeenColor(device.minutesAgo, device.status)}`}>{formatLastSeen(device.minutesAgo)}</div>
+            </div>
+            <div>
+              <div className="text-xs text-slate-500">Tag Battery</div>
+              <div className="font-medium text-slate-900">{device.battery !== null ? `${device.battery}%` : '—'}</div>
+            </div>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Movement Timeline (24h)</div>
+            <div className="space-y-2">
+              {timeline.map((t, i) => (
+                <div key={i} className="flex items-center gap-3 text-sm">
+                  <div className={`w-2 h-2 rounded-full ${t.current ? 'bg-blue-500 ring-4 ring-blue-100' : 'bg-slate-300'}`} />
+                  <div className="text-xs text-slate-400 w-16">{t.time}</div>
+                  <div className={t.current ? 'font-medium text-slate-900' : 'text-slate-600'}>{t.zone}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700">Mark Recovered</button>
+            <button className="flex-1 px-3 py-2 border border-slate-300 text-slate-700 text-sm font-medium rounded hover:bg-slate-50">Notify Owner</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
+// MAIN APP
+// =========================================================================
+
+function App() {
+  const [page, setPage] = useState('dashboard');
+  const [filters, setFilters] = useState({ location: 'All Locations', floor: 'All Floors', zone: 'All Zones' });
+  const [selectedDevice, setSelectedDevice] = useState(null);
+
+  const filteredDevices = useMemo(() => {
+    return DEVICES.filter(d => {
+      if (filters.location !== 'All Locations' && d.location !== filters.location) return false;
+      if (filters.floor !== 'All Floors' && d.floor !== filters.floor) return false;
+      if (filters.zone !== 'All Zones' && d.assignedZone !== filters.zone) return false;
+      return true;
+    });
+  }, [filters]);
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <Header />
+      <div className="flex">
+        <Sidebar currentPage={page} setPage={setPage} />
+        <main className="flex-1 min-w-0">
+          <FilterBar filters={filters} setFilters={setFilters} />
+          {page === 'dashboard' && <Dashboard devices={filteredDevices} />}
+          {page === 'inventory' && <Inventory devices={filteredDevices} onSelectDevice={setSelectedDevice} />}
+          {page === 'lossPrevention' && <LossPrevention devices={filteredDevices} onSelectDevice={setSelectedDevice} />}
+        </main>
+      </div>
+      <DeviceDrawer device={selectedDevice} onClose={() => setSelectedDevice(null)} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
